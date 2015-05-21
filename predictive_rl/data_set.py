@@ -17,8 +17,8 @@ class DataSet(object):
     """ Class represents a data set that stores a fixed-length history.
     """
 
-    def __init__(self, width, height, max_steps=1000, phi_length=4,
-                 capacity=None):
+    def __init__(self, observation_dimension_count, action_dimension_count, observation_dtype='int32',
+                 action_dtype='int32', max_steps=1000, phi_length=4, capacity=None):
         """  Construct a DataSet.
 
         Arguments:
@@ -28,15 +28,18 @@ class DataSet(object):
             capacity - amount of memory to allocate (just for debugging.)
         """
 
+        self.observation_dimension_count = observation_dimension_count
+        self.action_dimension_count = action_dimension_count
+
         self.count = 0
         self.max_steps = max_steps
         self.phi_length = phi_length
-        if capacity == None:
+        if capacity is None:
             self.capacity = max_steps + int(max_steps * .1)
         else:
             self.capacity = capacity
-        self.states = np.zeros((self.capacity, height, width), dtype='uint8')
-        self.actions = np.zeros(self.capacity, dtype='int32')
+        self.states = np.zeros((self.capacity, observation_dimension_count), dtype=observation_dtype)
+        self.actions = np.zeros((self.capacity, action_dimension_count), dtype=action_dtype)
         self.rewards = np.zeros(self.capacity, dtype=floatX)
         self.terminal = np.zeros(self.capacity, dtype='bool')
 
@@ -53,7 +56,7 @@ class DataSet(object):
 
     def add_sample(self, state, action, reward, terminal):
         self.states[self.count, ...] = state
-        self.actions[self.count] = action
+        self.actions[self.count, ...] = action
         self.rewards[self.count] = reward
         self.terminal[self.count] = terminal
         self.count += 1
@@ -61,8 +64,23 @@ class DataSet(object):
         # Shift the final max_steps back to the beginning.
         if self.count == self.capacity:
             roll_amount = self.capacity - self.max_steps
-            shift.shift3d_uint8(self.states, roll_amount)
-            self.actions = np.roll(self.actions, -roll_amount)
+            if self.states.dtype == 'uint8':
+                shift.shift2d_uint8(self.states, roll_amount)
+            elif self.states.dtype == 'int32':
+                shift.shift2d_int32(self.states, roll_amount)
+            elif self.states.dtype == 'float32':
+                shift.shift2d_float32(self.states, roll_amount)
+            else:
+                self.states = np.roll(self.states, -roll_amount, 0)  # default to numpy implementation
+
+            if self.actions.dtype == 'uint8':
+                shift.shift2d_uint8(self.actions, roll_amount)
+            elif self.actions.dtype == 'int32':
+                shift.shift2d_int32(self.actions, roll_amount)
+            elif self.actions.dtype == 'float32':
+                shift.shift2d_float32(self.actions, roll_amount)
+            else:
+                self.actions = np.roll(self.actions, -roll_amount, 0)  # default to numpy implementation
             self.rewards = np.roll(self.rewards, -roll_amount)
             self.terminal = np.roll(self.terminal, -roll_amount)
             self.count = self.max_steps
@@ -104,13 +122,13 @@ class DataSet(object):
         states = np.empty((batch_size, self.phi_length,
                            self.states.shape[1], self.states.shape[2]),
                           dtype=floatX)
-        actions = np.empty((batch_size, 1), dtype='int32')
+        actions = np.empty((batch_size, 1), dtype=self.actions.dtype)
         rewards = np.empty((batch_size, 1), dtype=floatX)
         terminals = np.empty((batch_size, 1), dtype=bool)
 
         next_states = np.empty((batch_size, self.phi_length,
                                 self.states.shape[1],
-                                self.states.shape[2]), dtype=floatX)
+                                self.states.shape[2]), dtype=floatX)  # what datatype?
         return states, actions, rewards, terminals, next_states
 
     def batch_iterator(self, batch_size):
@@ -320,6 +338,7 @@ def main():
     #max_size_tests()
     #simple_tests()
     #test_iterator()
+    pass
 
 if __name__ == "__main__":
     main()
