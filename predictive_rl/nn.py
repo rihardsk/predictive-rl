@@ -7,9 +7,11 @@ import numpy as np
 
 
 class NN():
-    def __init__(self, nn_layers=None, L2_reg=0.0001, learning_rate=0.01):
+    def __init__(self, nn_layers=None, L2_reg=0.0001, learning_rate=0.01, batch_size=32):
         self.layers = nn_layers
         #TODO: maybe initialize layers and set all inputs as prev outputs
+
+        self._batch_size = batch_size
 
         self._fprop = theano.function(
             [self.layers[0].input_var],
@@ -30,12 +32,44 @@ class NN():
             outputs=self.cost
         )
 
+        self._idx = T.lscalar('idx')
+
+        self.x_shared = theano.shared(
+            np.zeros((1, 1), dtype=theano.config.floatX))
+        self.y_shared = theano.shared(
+            np.zeros((1, 1), dtype=theano.config.floatX))
+
+        self._givens = {
+            self.layers[0].input_var: self.x_shared[self._idx * self._batch_size:(self._idx+1)*self._batch_size, ...],
+            self.layers[-1].target_var: self.y_shared[self._idx * self._batch_size:(self._idx+1)*self._batch_size, ...],
+        }
+
+        self._train_model_batch = theano.function(
+            inputs=[self._idx],
+            updates=self.updates,
+            givens=self._givens,
+            outputs=self.cost
+        )
+
     def output(self, *args, **kwargs):
         last_layer_output = self.layers[-1].output(*args, **kwargs)
         return last_layer_output
 
     def fprop(self, x):
         return self._fprop(x)
+
+    def train_model_batch(self, X, Y, epochs=1):
+        num_batches_valid = self.x_shared.shape[0] // self._batch_size
+        self.x_shared.set_value(X)
+        self.y_shared.set_value(Y)
+        for epoch in xrange(epochs):
+            losses = []
+            for b in xrange(num_batches_valid):
+                loss = self._train_model_batch(b)
+                losses.append(loss)
+
+            mean_train_loss = np.sqrt(np.mean(losses))
+            return mean_train_loss
 
 if __name__ == "__main__":
     layer1 = layers.FlatInputLayer(2, 2)
