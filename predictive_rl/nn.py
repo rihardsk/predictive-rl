@@ -40,8 +40,8 @@ class NN():
             np.zeros((1, 1), dtype=theano.config.floatX))
 
         self._givens = {
-            self.layers[0].input_var: self.x_shared[self._idx * self._batch_size:(self._idx+1)*self._batch_size, ...],
-            self.layers[-1].target_var: self.y_shared[self._idx * self._batch_size:(self._idx+1)*self._batch_size, ...],
+            self.layers[0].input_var: self.x_shared[self._idx * self._batch_size:(self._idx+1)*self._batch_size, :],
+            self.layers[-1].target_var: self.y_shared[self._idx * self._batch_size:(self._idx+1)*self._batch_size, :],
         }
 
         self._train_model_batch = theano.function(
@@ -58,18 +58,19 @@ class NN():
     def fprop(self, x):
         return self._fprop(x)
 
-    def train_model_batch(self, X, Y, epochs=1):
-        num_batches_valid = self.x_shared.shape[0] // self._batch_size
+    def train_model_batch(self, X, Y, epochs=20):
+        num_batches_valid = X.shape[0] // self._batch_size
         self.x_shared.set_value(X)
         self.y_shared.set_value(Y)
+        epoch_losses = []
         for epoch in xrange(epochs):
             losses = []
             for b in xrange(num_batches_valid):
                 loss = self._train_model_batch(b)
                 losses.append(loss)
-
             mean_train_loss = np.sqrt(np.mean(losses))
-            return mean_train_loss
+            epoch_losses.append(mean_train_loss)
+        return epoch_losses
 
 if __name__ == "__main__":
     layer1 = layers.FlatInputLayer(2, 2)
@@ -79,9 +80,18 @@ if __name__ == "__main__":
     mlp = NN([layer1, layer2, layer3, layer4])
     x = np.matrix([0.5, 0.3], dtype='float32')
 
-    for i in xrange(3000):
-         X = np.matrix(np.random.rand(12000, 2), dtype='float32')
-         Y = np.dot(X, np.matrix([[1, 2, 0, 1],[0,0,0.5,1]], dtype='float32'))
-         mlp.train_model(X,Y)
+    losses = []
+
+    # for i in xrange(3000):
+    #      X = np.matrix(np.random.rand(12000, 2), dtype='float32')
+    #      Y = np.dot(X, np.matrix([[1, 2, 0, 1],[0,0,0.5,1]], dtype='float32'))
+    #      mlp.train_model(X,Y)
+
+    X = np.matrix(np.random.rand(12000, 2), dtype='float32')
+    Y = np.dot(X, np.matrix([[1, 2, 0, 1],[0,0,0.5,1]], dtype='float32'))
+
+    losses = mlp.train_model_batch(X, Y)
+
+    print losses
 
     print mlp.fprop(x)
