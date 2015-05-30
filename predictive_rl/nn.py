@@ -73,7 +73,7 @@ class NN():
         return epoch_losses
 
 if __name__ == "__main__":
-    layer1 = layers.FlatInputLayer(2, 2)
+    layer1 = layers.FlatInputLayer(32, 2)
     layer2 = layers.DenseLayer(layer1, 60, 0.1, 0, layers.sigmoid)
     layer3 = layers.DenseLayer(layer2, 4, 0.1, 0, layers.sigmoid)
     layer4 = layers.OutputLayer(layer3)
@@ -87,7 +87,7 @@ if __name__ == "__main__":
     #      Y = np.dot(X, np.matrix([[1, 2, 0, 1],[0,0,0.5,1]], dtype='float32'))
     #      mlp.train_model(X,Y)
 
-    X = np.matrix(np.random.rand(12000, 2), dtype='float32')
+    X = np.matrix(np.random.rand(120000, 2), dtype='float32')
     Y = np.dot(X, np.matrix([[1, 2, 0, 1],[0,0,0.5,1]], dtype='float32'))
 
     losses = mlp.train_model_batch(X, Y)
