@@ -62,7 +62,7 @@ class cacla_agent(Agent):
             self.network = cPickle.load(handle)
 
         self.action_stdev = 1
-
+        self.gamma = 0.9
 
         self.data_set = data_set.DataSet(
             len(observations),
@@ -185,7 +185,12 @@ class cacla_agent(Agent):
         """
         states, actions, rewards, next_states, terminals = \
                                 self.data_set.random_batch(self.batch_size)
-        return self.action_network.train_model_batch(states, actions)
+        values = self.value_network.fprop(states)
+        target_values = rewards + self.gamma * self.value_network.fprop(next_states)
+        self.value_network.train_model_batch(states, target_values)
+        updated_values = self.value_network.fprop(states)
+        mask = updated_values > values
+        return self.action_network.train_model_batch(states[mask], actions[mask])
 
     def agent_step(self, reward, observation):
         """
@@ -281,7 +286,7 @@ class cacla_agent(Agent):
             epoch = int(in_message.split(" ")[1])
             net_file = open(self.exp_dir + '/network_file_' + str(epoch) + \
                             '.pkl', 'w')
-            cPickle.dump(self.network, net_file, -1)
+            cPickle.dump(self.action_network, net_file, -1)
             net_file.close()
 
         elif in_message.startswith("start_testing"):
@@ -298,12 +303,12 @@ class cacla_agent(Agent):
                 self.holdout_data = self.data_set.random_batch(holdout_size)[0]
 
             holdout_sum = 0
-            for i in range(holdout_size):
-                holdout_sum += np.mean(
-                    self.network.q_vals(self.holdout_data[i, ...]))
-
-            self._update_results_file(epoch, self.episode_counter,
-                                      holdout_sum / holdout_size)
+            # for i in range(holdout_size):
+            #     holdout_sum += np.mean(
+            #         self.network.q_vals(self.holdout_data[i, ...]))
+            #
+            # self._update_results_file(epoch, self.episode_counter,
+            #                           holdout_sum / holdout_size)
         else:
             return "I don't know how to respond to your message"
 
