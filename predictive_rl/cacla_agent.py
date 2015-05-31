@@ -60,6 +60,8 @@ class cacla_agent(Agent):
         self.nn_file = None
         self.testing = False
         self.batch_size = 32
+        self.episode_counter = 0
+        self.step_counter = 0
 
         if self.nn_file is None:
             self.action_network = self._init_action_network(len(observations), len(actions))
@@ -236,7 +238,7 @@ class cacla_agent(Agent):
 
             # Store the latest sample.
             self.data_set.add_sample(self.last_observation,
-                                     self.last_action.doubleArray[0],
+                                     self.last_action.doubleArray,
                                      np.clip(reward, -1, 1),
                                      True)
 
