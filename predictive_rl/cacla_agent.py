@@ -43,16 +43,20 @@ class cacla_agent(Agent):
             assert ((len(TaskSpec.getIntObservations()) == 0) !=
                     (len(TaskSpec.getDoubleObservations()) == 0)), \
                 "expecting continous or discrete observations.  Not both."
-            assert not TaskSpec.isSpecial(TaskSpec.getIntActions()[0][0]), \
+            assert not TaskSpec.isSpecial(TaskSpec.getDoubleActions()[0][0]), \
                 " expecting min action to be a number not a special value"
-            assert not TaskSpec.isSpecial(TaskSpec.getIntActions()[0][1]), \
+            assert not TaskSpec.isSpecial(TaskSpec.getDoubleActions()[0][1]), \
                 " expecting max action to be a number not a special value"
             #self.num_actions = TaskSpec.getIntActions()[0][1]+1
         else:
             print "INVALID TASK SPEC"
 
         observations = TaskSpec.getDoubleObservations() # TODO: take care of int observations
+        self.observation_size = len(observations)
+
         actions = TaskSpec.getDoubleActions()
+        self.action_size = len(actions)
+        self.nn_file = None
 
         if self.nn_file is None:
             self.action_network = self._init_action_network(len(observations), len(actions))
@@ -62,7 +66,7 @@ class cacla_agent(Agent):
             self.network = cPickle.load(handle)
 
         self.action_stdev = 1
-        self.gamma = 0.9
+        self.gamma = 0.9 # TaskSpec.getDiscountFactor()
 
         self.data_set = data_set.DataSet(
             len(observations),
@@ -71,7 +75,7 @@ class cacla_agent(Agent):
             action_dtype='float32',
         )
         # just needs to be big enough to create phi's
-        self.test_data_set = data_set.DataSetdata_set.DataSet(
+        self.test_data_set = data_set.DataSet(
             len(observations),
             len(actions),
             observation_dtype='float32',
@@ -122,38 +126,7 @@ class cacla_agent(Agent):
 
         self.start_time = time.time()
         #this_int_action = self.randGenerator.randint(0, self.num_actions-1)
-        actions = self.action_network.fprop(observation)
-        return_action = Action()
-        return_action.doubleArray = [actions]
-
-        self.last_action = copy.deepcopy(return_action)
-
-        self.last_observation = observation.doubleArray
-
-        return return_action
-
-    def agent_start(self, observation):
-        """
-        This method is called once at the beginning of each episode.
-        No reward is provided, because reward is only available after
-        an action has been taken.
-
-        Arguments:
-           observation - An observation of type rlglue.types.Observation
-
-        Returns:
-           An action of type rlglue.types.Action
-        """
-
-        self.step_counter = 0
-        self.batch_counter = 0
-
-        # We report the mean loss for every epoch.
-        self.loss_averages = []
-
-        self.start_time = time.time()
-        #this_int_action = self.randGenerator.randint(0, self.num_actions-1)
-        actions = self.action_network.fprop(observation)
+        actions = self.action_network.fprop(observation.doubleArray)
         return_action = Action()
         return_action.doubleArray = [actions]
 
