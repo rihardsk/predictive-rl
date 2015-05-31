@@ -126,7 +126,8 @@ class cacla_agent(Agent):
 
         self.start_time = time.time()
         #this_int_action = self.randGenerator.randint(0, self.num_actions-1)
-        actions = self.action_network.fprop(observation.doubleArray)
+        observation_matrix = np.asmatrix(observation.doubleArray, dtype='float32')
+        actions = self.action_network.fprop(observation_matrix)
         return_action = Action()
         return_action.doubleArray = [actions]
 

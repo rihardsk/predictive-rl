@@ -38,10 +38,10 @@ class DataSet(object):
             self.capacity = max_steps + int(max_steps * .1)
         else:
             self.capacity = capacity
-        self.states = np.zeros((self.capacity, observation_dimension_count), dtype=observation_dtype)
-        self.actions = np.zeros((self.capacity, action_dimension_count), dtype=action_dtype)
-        self.rewards = np.zeros(self.capacity, dtype=floatX)
-        self.terminal = np.zeros(self.capacity, dtype='bool')
+        self.states = np.asmatrix(np.zeros((self.capacity, observation_dimension_count), dtype=observation_dtype))
+        self.actions = np.asmatrix(np.zeros((self.capacity, action_dimension_count), dtype=action_dtype))
+        self.rewards = np.asmatrix(np.zeros(self.capacity, dtype=floatX))
+        self.terminal = np.asmatrix(np.zeros(self.capacity, dtype='bool'))
 
 
     def _min_index(self):
