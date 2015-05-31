@@ -56,7 +56,10 @@ class cacla_agent(Agent):
 
         actions = TaskSpec.getDoubleActions()
         self.action_size = len(actions)
+
         self.nn_file = None
+        self.testing = False
+        self.batch_size = 32
 
         if self.nn_file is None:
             self.action_network = self._init_action_network(len(observations), len(actions))
@@ -146,7 +149,7 @@ class cacla_agent(Agent):
                             self.last_action.doubleArray,
                             reward, False)
 
-        double_action = self.action_network.fprop(cur_observation)
+        double_action = self.action_network.fprop(np.asmatrix(cur_observation, dtype='float32'))
 
         double_action = double_action + self.randGenerator.normal(0, action_stdev, len(double_action))
         return double_action
