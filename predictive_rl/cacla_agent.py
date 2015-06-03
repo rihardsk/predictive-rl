@@ -169,7 +169,7 @@ class cacla_agent(Agent):
         self.value_network.train_model_batch(states, target_values)
         updated_values = self.value_network.fprop(states)
         mask = updated_values > values
-        return self.action_network.train_model_batch(states[mask], actions[mask])
+        return self.action_network.train_model_batch(states[mask[:, 0]], actions[mask[:, 0]])
 
     def agent_step(self, reward, observation):
         """

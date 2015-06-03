@@ -5,7 +5,9 @@ It allocates more memory than necessary, then shifts all of the
 data back to 0 when the samples reach the end of the allocated memory.
 """
 
-import pyximport; pyximport.install()
+import pyximport;
+
+pyximport.install()
 import shift
 import time
 import numpy as np
@@ -13,12 +15,13 @@ import theano
 
 floatX = theano.config.floatX
 
+
 class DataSet(object):
     """ Class represents a data set that stores a fixed-length history.
     """
 
     def __init__(self, observation_dimension_count, action_dimension_count, observation_dtype='int32',
-                 action_dtype='int32', max_steps=1000, phi_length=4, capacity=None):
+                 action_dtype='int32', max_steps=1000, phi_length=1, capacity=None):
         """  Construct a DataSet.
 
         Arguments:
@@ -40,8 +43,8 @@ class DataSet(object):
             self.capacity = capacity
         self.states = np.asmatrix(np.zeros((self.capacity, observation_dimension_count), dtype=observation_dtype))
         self.actions = np.asmatrix(np.zeros((self.capacity, action_dimension_count), dtype=action_dtype))
-        self.rewards = np.asmatrix(np.zeros(self.capacity, dtype=floatX))
-        self.terminal = np.asmatrix(np.zeros(self.capacity, dtype='bool'))
+        self.rewards = np.asmatrix(np.zeros((self.capacity, 1), dtype=floatX))
+        self.terminal = np.asmatrix(np.zeros((self.capacity, 1), dtype='bool'))
 
 
     def _min_index(self):
@@ -89,14 +92,14 @@ class DataSet(object):
         """ Make sure that a possible phi does not cross a trial boundary.
         """
         # start and end are inclusive
-        return np.alltrue(np.logical_not(self.terminal[start:end+1]))
+        return np.alltrue(np.logical_not(self.terminal[start:end + 1]))
 
     def last_phi(self):
         """
         Return the most recent phi.
         """
         phi = self._make_phi(self.count - self.phi_length)
-        return  np.array(phi, dtype=floatX)
+        return np.array(phi, dtype=floatX)
 
     def phi(self, state):
         """
@@ -108,27 +111,24 @@ class DataSet(object):
                         self.states.shape[2]),
                        dtype=floatX)
 
-        phi[0:(self.phi_length-1), ...] = self.last_phi()[1::]
-        phi[self.phi_length-1, ...] = state
+        phi[0:(self.phi_length - 1), ...] = self.last_phi()[1::]
+        phi[self.phi_length - 1, ...] = state
         return phi
 
     def _make_phi(self, index):
         end_index = index + self.phi_length - 1
-        #assert self.no_terminal(index, end_index)
+        # assert self.no_terminal(index, end_index)
         return self.states[index:end_index + 1, ...]
 
     def _empty_batch(self, batch_size):
         # Set aside memory for the batch
-        states = np.empty((batch_size, self.phi_length,
-                           self.states.shape[1], self.states.shape[2]),
-                          dtype=floatX)
-        actions = np.empty((batch_size, 1), dtype=self.actions.dtype)
-        rewards = np.empty((batch_size, 1), dtype=floatX)
-        terminals = np.empty((batch_size, 1), dtype=bool)
+        states = np.asmatrix(np.empty((batch_size, self.states.shape[1]),
+                                      dtype=floatX))
+        actions = np.asmatrix(np.empty((batch_size, self.actions.shape[1]), dtype=self.actions.dtype))
+        rewards = np.asmatrix(np.empty((batch_size, 1), dtype=floatX))
+        terminals = np.asmatrix(np.empty((batch_size, 1), dtype=bool))
 
-        next_states = np.empty((batch_size, self.phi_length,
-                                self.states.shape[1],
-                                self.states.shape[2]), dtype=floatX)  # what datatype?
+        next_states = np.asmatrix(np.empty((batch_size, self.states.shape[1]), dtype=floatX))  # what datatype?
         return states, actions, rewards, terminals, next_states
 
     def batch_iterator(self, batch_size):
@@ -136,15 +136,15 @@ class DataSet(object):
         index = self._min_index()
         batch_count = 0
         states, actions, rewards, terminals, next_states = \
-                self._empty_batch(batch_size)      
+            self._empty_batch(batch_size)
         while index <= self._max_index():
             end_index = index + self.phi_length - 1
             if self.no_terminal(index, end_index):
                 states[batch_count, ...] = self._make_phi(index)
-                actions[batch_count, 0] = self.actions[end_index]
+                actions[batch_count, ...] = self.actions[end_index]
                 rewards[batch_count, 0] = self.rewards[end_index]
-                terminals[batch_count, 0] = self.terminal[end_index+1]
-                next_states[batch_count, ...] = self._make_phi(index+1)
+                terminals[batch_count, 0] = self.terminal[end_index + 1]
+                next_states[batch_count, ...] = self._make_phi(index + 1)
                 batch_count += 1
             index += 1
 
@@ -152,9 +152,9 @@ class DataSet(object):
                 yield states, actions, rewards, terminals, next_states
                 batch_count = 0
                 states, actions, rewards, terminals, next_states = \
-                    self._empty_batch(batch_size)      
+                    self._empty_batch(batch_size)
 
-                
+
     def random_batch(self, batch_size):
 
         count = 0
@@ -163,18 +163,17 @@ class DataSet(object):
 
         # Grab random samples until we have enough
         while count < batch_size:
-            index = np.random.randint(self._min_index(), self._max_index()+1)
+            index = np.random.randint(self._min_index(), self._max_index() + 1)
             end_index = index + self.phi_length - 1
             if self.no_terminal(index, end_index):
                 states[count, ...] = self._make_phi(index)
                 actions[count, 0] = self.actions[end_index]
                 rewards[count, 0] = self.rewards[end_index]
-                terminals[count, 0] = self.terminal[end_index+1]
-                next_states[count, ...] = self._make_phi(index+1)
+                terminals[count, 0] = self.terminal[end_index + 1]
+                next_states[count, ...] = self._make_phi(index + 1)
                 count += 1
 
         return states, actions, rewards, next_states, terminals
-
 
 
 # TESTING CODE BELOW THIS POINT...
@@ -203,7 +202,6 @@ def simple_tests():
 
 
 def speed_tests():
-
     dataset = DataSet(width=80, height=80, max_steps=20000, phi_length=4)
 
     img = np.random.randint(0, 256, size=(80, 80))
@@ -226,7 +224,6 @@ def speed_tests():
 
 
 def trivial_tests():
-
     dataset = DataSet(width=2, height=1, max_steps=3, phi_length=2)
 
     img1 = np.array([[1, 1]], dtype='uint8')
@@ -271,7 +268,7 @@ def test_iterator():
     dataset.add_sample(img4, 4, 4, True)
 
     for s, a, r, t, ns in dataset.batch_iterator(2):
-        print "s ", s, "a ",a, "r ",r,"t ", t,"ns ", ns
+        print "s ", s, "a ", a, "r ", r, "t ", t, "ns ", ns
 
 
 def test_random_batch():
@@ -291,11 +288,11 @@ def test_random_batch():
         dataset1.add_sample(img, action, reward, terminal)
         dataset2.add_sample(img, action, reward, terminal)
         if i > 10:
-            np.random.seed(i*11 * i)
+            np.random.seed(i * 11 * i)
             states1, actions1, rewards1, next_states1, terminals1 = \
                 dataset1.random_batch(10)
 
-            np.random.seed(i*11 * i)
+            np.random.seed(i * 11 * i)
             states2, actions2, rewards2, next_states2, terminals2 = \
                 dataset2.random_batch(10)
             np.testing.assert_array_almost_equal(states1, states2)
@@ -304,11 +301,11 @@ def test_random_batch():
             np.testing.assert_array_almost_equal(next_states1, next_states2)
             np.testing.assert_array_almost_equal(terminals1, terminals2)
             # if not np.array_equal(states1, states2):
-            #     print states1,"\n", states2
+            # print states1,"\n", states2
             # if not np.array_equal(actions1, actions2):
-            #     print actions1, "\n",actions2
+            # print actions1, "\n",actions2
             # if not np.array_equal(rewards1, rewards2):
-            #     print rewards1, "\n",rewards2
+            # print rewards1, "\n",rewards2
             # if not np.array_equal(next_states1, next_states2):
             #     print next_states1, "\n",next_states2
             # if not np.array_equal(terminals1, terminals2):
@@ -332,13 +329,14 @@ def test_memory_usage_ok():
 
 
 def main():
-    #speed_tests()
-    #test_memory_usage_ok()
-    #test_random_batch()
+    # speed_tests()
+    # test_memory_usage_ok()
+    # test_random_batch()
     #max_size_tests()
     #simple_tests()
     #test_iterator()
     pass
+
 
 if __name__ == "__main__":
     main()
