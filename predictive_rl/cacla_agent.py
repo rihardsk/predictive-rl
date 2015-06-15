@@ -18,12 +18,45 @@ import nn
 import layers
 import numpy as np
 import data_set
+import argparse
+import os
 
 
 class cacla_agent(Agent):
     randGenerator = np.random
 
     def __init__(self):
+        """
+        Mostly just read command line arguments here. We do this here
+        instead of agent_init to make it possible to use --help from
+        the command line without starting an experiment.
+        """
+        # Handle command line argument:
+        parser = argparse.ArgumentParser(description='Neural rl agent.')
+        parser.add_argument('--action_learning_rate', type=float, default=.0002,
+                            help='Learning rate')
+        parser.add_argument('--value_learning_rate', type=float, default=.0002,
+                            help='Learning rate')
+        parser.add_argument('--discount', type=float, default=.95,
+                            help='Discount rate')
+        parser.add_argument('--exp_pref', type=str, default="",
+                            help='Experiment name prefix')
+        parser.add_argument('--nn_file', type=str, default=None,
+                            help='Pickle file containing trained net.')
+        # Create instance variables directy from the arguments:
+        parser.parse_known_args(namespace=self)
+
+
+        # CREATE A FOLDER TO HOLD RESULTS
+        time_str = time.strftime("_%m-%d-%H-%M_", time.gmtime())
+        self.exp_dir = self.exp_pref + time_str + \
+                        "a-{}_v-{}".format(self.action_learning_rate, self.value_learning_rate).replace(".", "p") + \
+                        "_" + "{}".format(self.discount).replace(".", "p")
+
+        try:
+            os.stat(self.exp_dir)
+        except:
+            os.makedirs(self.exp_dir)
         return
 
     def agent_init(self, taskSpecification):
@@ -57,7 +90,6 @@ class cacla_agent(Agent):
         actions = TaskSpec.getDoubleActions()
         self.action_size = len(actions)
 
-        self.nn_file = None
         self.testing = False
         self.batch_size = 32
         self.episode_counter = 0
@@ -70,7 +102,7 @@ class cacla_agent(Agent):
             handle = open(self.nn_file, 'r')
             self.network = cPickle.load(handle)
 
-        self.action_stdev = 0.05
+        self.action_stdev = 0.01
         self.gamma = 0.9 # TaskSpec.getDiscountFactor()
 
         self.data_set = data_set.DataSet(
@@ -84,8 +116,7 @@ class cacla_agent(Agent):
             len(observations),
             len(actions),
             observation_dtype='float32',
-            action_dtype='float32',
-            max_steps=10
+            action_dtype='float32'
         )
 
     def _init_action_network(self, input_dims, output_dims, minibatch_size=32):
@@ -94,10 +125,10 @@ class cacla_agent(Agent):
         of network is desired.
         """
         layer1 = layers.FlatInputLayer(minibatch_size, input_dims)
-        layer2 = layers.DenseLayer(layer1, input_dims * 2, 0.1, 0, layers.sigmoid)
+        layer2 = layers.DenseLayer(layer1, 15, 0.1, 0, layers.sigmoid)
         layer3 = layers.DenseLayer(layer2, output_dims, 0.1, 0, layers.sigmoid)
         layer4 = layers.OutputLayer(layer3)
-        return nn.NN([layer1, layer2, layer3, layer4], batch_size=minibatch_size)
+        return nn.NN([layer1, layer2, layer3, layer4], batch_size=minibatch_size, learning_rate=self.action_learning_rate)
 
     def _init_value_network(self, input_dims, output_dims, minibatch_size=32):
         """
@@ -105,10 +136,10 @@ class cacla_agent(Agent):
         of network is desired.
         """
         layer1 = layers.FlatInputLayer(minibatch_size, input_dims)
-        layer2 = layers.DenseLayer(layer1, input_dims * 2, 0.1, 0, layers.sigmoid)
+        layer2 = layers.DenseLayer(layer1, 15, 0.1, 0, layers.sigmoid)
         layer3 = layers.DenseLayer(layer2, output_dims, 0.1, 0, layers.sigmoid)
         layer4 = layers.OutputLayer(layer3)
-        return nn.NN([layer1, layer2, layer3, layer4], batch_size=minibatch_size)
+        return nn.NN([layer1, layer2, layer3, layer4], batch_size=minibatch_size, learning_rate=self.value_learning_rate)
 
     def agent_start(self, observation):
         """
@@ -142,7 +173,7 @@ class cacla_agent(Agent):
 
         return return_action
 
-    def _choose_action(self, data_set, action_stdev, cur_observation, reward):
+    def _choose_action(self, data_set, cur_observation, reward, action_stdev=None):
         """
         Add the most recent data to the data set and choose
         an action based on the current policy.
@@ -154,7 +185,7 @@ class cacla_agent(Agent):
         double_action = self.action_network.fprop(np.asmatrix(cur_observation, dtype='float32'))
 
         # in order for the agent to learn we need some exploration
-        double_action = double_action + self.randGenerator.normal(0, action_stdev, len(double_action))
+        double_action = double_action + 0 if action_stdev is None else self.randGenerator.normal(0, action_stdev, len(double_action))
         return np.clip(double_action, 0, 1)
 
     def _do_training(self):
@@ -192,15 +223,15 @@ class cacla_agent(Agent):
         #TESTING---------------------------
         if self.testing:
             self.total_reward += reward
-            double_action = self._choose_action(self.test_data_set, 0,
+            double_action = self._choose_action(self.test_data_set,
                                              cur_observation, np.clip(reward, -1, 1))
             # if self.pause > 0:
             #     time.sleep(self.pause)
 
         #NOT TESTING---------------------------
         else:
-            double_action = self._choose_action(self.data_set, self.action_stdev,
-                                             cur_observation, np.clip(reward, -1, 1))
+            double_action = self._choose_action(self.data_set, cur_observation,
+                                             np.clip(reward, -1, 1), self.action_stdev)
 
             if len(self.data_set) > self.batch_size:
                 loss = self._do_training()
@@ -280,8 +311,8 @@ class cacla_agent(Agent):
             holdout_size = 3200
             epoch = int(in_message.split(" ")[1])
 
-            if self.holdout_data is None:
-                self.holdout_data = self.data_set.random_batch(holdout_size)[0]
+            #if self.holdout_data is None:
+            #    self.holdout_data = self.data_set.random_batch(holdout_size)[0]
 
             holdout_sum = 0
             # for i in range(holdout_size):
