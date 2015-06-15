@@ -70,7 +70,7 @@ class cacla_agent(Agent):
             handle = open(self.nn_file, 'r')
             self.network = cPickle.load(handle)
 
-        self.action_stdev = 1
+        self.action_stdev = 0.05
         self.gamma = 0.9 # TaskSpec.getDiscountFactor()
 
         self.data_set = data_set.DataSet(
@@ -138,7 +138,7 @@ class cacla_agent(Agent):
 
         self.last_action = copy.deepcopy(return_action)
 
-        self.las_observation = observation.doubleArray
+        self.last_observation = observation.doubleArray
 
         return return_action
 
@@ -147,14 +147,15 @@ class cacla_agent(Agent):
         Add the most recent data to the data set and choose
         an action based on the current policy.
         """
-        data_set.add_sample(self.las_observation,
+        data_set.add_sample(self.last_observation,
                             self.last_action.doubleArray,
                             reward, False)
 
         double_action = self.action_network.fprop(np.asmatrix(cur_observation, dtype='float32'))
 
+        # in order for the agent to learn we need some exploration
         double_action = double_action + self.randGenerator.normal(0, action_stdev, len(double_action))
-        return double_action
+        return np.clip(double_action, 0, 1)
 
     def _do_training(self):
         """
@@ -165,7 +166,7 @@ class cacla_agent(Agent):
         states, actions, rewards, next_states, terminals = \
                                 self.data_set.random_batch(self.batch_size)
         values = self.value_network.fprop(states)
-        target_values = rewards + self.gamma * self.value_network.fprop(next_states)
+        target_values = rewards + np.multiply(self.gamma * self.value_network.fprop(next_states), ~terminals)
         self.value_network.train_model_batch(states, target_values)
         updated_values = self.value_network.fprop(states)
         mask = updated_values > values
@@ -191,7 +192,7 @@ class cacla_agent(Agent):
         #TESTING---------------------------
         if self.testing:
             self.total_reward += reward
-            double_action = self._choose_action(self.test_data_set, self.action_stdev,
+            double_action = self._choose_action(self.test_data_set, 0,
                                              cur_observation, np.clip(reward, -1, 1))
             # if self.pause > 0:
             #     time.sleep(self.pause)
@@ -211,6 +212,7 @@ class cacla_agent(Agent):
         self.last_action = copy.deepcopy(return_action)
         self.last_observation = cur_observation
 
+        return_action.doubleArray = [double_action * 2 - 1]
         return return_action
 
     def agent_end(self, reward):
