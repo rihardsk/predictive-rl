@@ -33,9 +33,9 @@ class cacla_agent(Agent):
         """
         # Handle command line argument:
         parser = argparse.ArgumentParser(description='Neural rl agent.')
-        parser.add_argument('--action_learning_rate', type=float, default=.0002,
+        parser.add_argument('--action_learning_rate', type=float, default=.1,
                             help='Learning rate')
-        parser.add_argument('--value_learning_rate', type=float, default=.0002,
+        parser.add_argument('--value_learning_rate', type=float, default=.1,
                             help='Learning rate')
         parser.add_argument('--discount', type=float, default=.95,
                             help='Discount rate')
@@ -49,7 +49,7 @@ class cacla_agent(Agent):
 
         # CREATE A FOLDER TO HOLD RESULTS
         time_str = time.strftime("_%m-%d-%H-%M_", time.gmtime())
-        self.exp_dir = self.exp_pref + time_str + \
+        self.exp_dir = "experiments_minimal/" + self.exp_pref + time_str + \
                         "a-{}_v-{}".format(self.action_learning_rate, self.value_learning_rate).replace(".", "p") + \
                         "_" + "{}".format(self.discount).replace(".", "p")
 
@@ -84,11 +84,11 @@ class cacla_agent(Agent):
         else:
             print "INVALID TASK SPEC"
 
-        observations = TaskSpec.getDoubleObservations() # TODO: take care of int observations
-        self.observation_size = len(observations)
+        self.observation_ranges = TaskSpec.getDoubleObservations() # TODO: take care of int observations
+        self.observation_size = len(self.observation_ranges)
 
-        actions = TaskSpec.getDoubleActions()
-        self.action_size = len(actions)
+        self.action_ranges = TaskSpec.getDoubleActions()
+        self.action_size = len(self.action_ranges)
 
         self.testing = False
         self.batch_size = 32
@@ -96,21 +96,24 @@ class cacla_agent(Agent):
         self.step_counter = 0
 
         if self.nn_file is None:
-            self.action_network = self._init_action_network(len(observations), len(actions), minibatch_size=1)
-            self.value_network = self._init_value_network(len(observations), 1, minibatch_size=1)
+            self.action_network = self._init_action_network(len(self.observation_ranges), len(self.action_ranges), minibatch_size=1)
+            self.value_network = self._init_value_network(len(self.observation_ranges), 1, minibatch_size=1)
         else:
             handle = open(self.nn_file, 'r')
             self.network = cPickle.load(handle)
 
-        self.action_stdev = 0.01
+        self.action_stdev = 1
         self.gamma = 0.9 # TaskSpec.getDiscountFactor()
+
+        self.action_ranges = np.asmatrix(self.action_ranges)
+        self.observation_ranges = np.asmatrix(self.observation_ranges)
 
     def _init_action_network(self, input_dims, output_dims, minibatch_size=32):
         """
         A subclass may override this if a different sort
         of network is desired.
         """
-        layer1 = layers.FlatInputLayer(minibatch_size, input_dims)
+        layer1 = layers.FlatInputLayer(minibatch_size, input_dims, np.asarray(self.observation_ranges, dtype='float32'))
         layer2 = layers.DenseLayer(layer1, 15, 0.1, 0, layers.sigmoid)
         layer3 = layers.DenseLayer(layer2, output_dims, 0.1, 0, layers.sigmoid)
         layer4 = layers.OutputLayer(layer3)
@@ -121,7 +124,7 @@ class cacla_agent(Agent):
         A subclass may override this if a different sort
         of network is desired.
         """
-        layer1 = layers.FlatInputLayer(minibatch_size, input_dims)
+        layer1 = layers.FlatInputLayer(minibatch_size, input_dims, np.asarray(self.observation_ranges, dtype='float32'))
         layer2 = layers.DenseLayer(layer1, 15, 0.1, 0, layers.sigmoid)
         layer3 = layers.DenseLayer(layer2, output_dims, 0.1, 0, layers.sigmoid)
         layer4 = layers.OutputLayer(layer3)
@@ -187,7 +190,11 @@ class cacla_agent(Agent):
         self.value_network.train_model(state, target_value)
         updated_value = self.value_network.fprop(state)
         mask = updated_value > value
-        return self.action_network.train_model_batch(state[mask[:, 0]], action[mask[:, 0]])
+
+        if mask[0, 0]:
+            return self.action_network.train_model(state, action)
+        else:
+            return None
 
     def agent_step(self, reward, observation):
         """
@@ -220,7 +227,8 @@ class cacla_agent(Agent):
 
             loss = self._do_training()
             self.batch_counter += 1
-            self.loss_averages.append(loss)
+            if loss is not None:
+                self.loss_averages.append(loss)
 
         self.last_action = copy.deepcopy(double_action)
         self.last_observation = cur_observation

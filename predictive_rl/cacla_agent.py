@@ -27,7 +27,7 @@ class cacla_agent(Agent):
 
     def __init__(self):
         """
-        Mostly just read command line arguments here. We do this here
+        Mostly just read command line arguments here. We dostart this here
         instead of agent_init to make it possible to use --help from
         the command line without starting an experiment.
         """
@@ -49,7 +49,7 @@ class cacla_agent(Agent):
 
         # CREATE A FOLDER TO HOLD RESULTS
         time_str = time.strftime("_%m-%d-%H-%M_", time.gmtime())
-        self.exp_dir = self.exp_pref + time_str + \
+        self.exp_dir = "experiments/" + self.exp_pref + time_str + \
                         "a-{}_v-{}".format(self.action_learning_rate, self.value_learning_rate).replace(".", "p") + \
                         "_" + "{}".format(self.discount).replace(".", "p")
 
