@@ -52,7 +52,7 @@ tanh = T.tanh
 
 def rectify(x):
     return T.maximum(x, 0.0)
-    
+
 def identity(x):
     # To create a linear layer.
     return x
@@ -89,7 +89,7 @@ def all_parameters(layer):
 def all_bias_parameters(layer):
     """
     Recursive function to gather all bias parameters, starting from the output layer
-    """    
+    """
     if isinstance(layer, InputLayer) or isinstance(layer, Input2DLayer):
         return []
     elif isinstance(layer, ConcatenateLayer):
@@ -135,7 +135,7 @@ def reset_all_params(layer):
             l.reset_params()
 
 
-    
+
 
 def gen_updates_regular_momentum(loss, all_parameters, learning_rate, momentum, weight_decay):
     all_grads = [theano.grad(loss, param) for param in all_parameters]
@@ -197,7 +197,7 @@ def gen_updates_sgd(loss, all_parameters, learning_rate):
 
 def gen_updates_adagrad(loss, all_parameters, learning_rate=1.0, epsilon=1e-6):
     """
-    epsilon is not included in the typical formula, 
+    epsilon is not included in the typical formula,
 
     See "Notes on AdaGrad" by Chris Dyer for more info.
     """
@@ -217,9 +217,9 @@ def gen_updates_adagrad(loss, all_parameters, learning_rate=1.0, epsilon=1e-6):
 # These were  helpful:
 # http://climin.readthedocs.org/en/latest/rmsprop.html
 # https://github.com/lisa-lab/pylearn2/pull/136
-def gen_updates_rmsprop_and_nesterov_momentum(loss, all_parameters, 
+def gen_updates_rmsprop_and_nesterov_momentum(loss, all_parameters,
                                               learning_rate,
-                                              rho=0.9, momentum=0.9, 
+                                              rho=0.9, momentum=0.9,
                                               epsilon=1e-6):
     all_grads = [theano.grad(loss, param) for param in all_parameters]
     updates = []
@@ -289,7 +289,7 @@ def gen_updates_adadelta(loss, all_parameters, learning_rate=1.0, rho=0.95, epsi
         acc_delta_i_new = rho * acc_delta_i + (1 - rho) * update_i**2
         updates.append((acc_delta_i, acc_delta_i_new))
 
-    return updates    
+    return updates
 
 
 
@@ -868,7 +868,7 @@ class NIN2DLayer(object):
     def output(self, input=None, dropout_active=True, *args, **kwargs): # use the 'dropout_active' keyword argument to disable it at test time. It is on by default.
         if input == None:
             input = self.input_layer.output(dropout_active=dropout_active, *args, **kwargs)
-        
+
         if dropout_active and (self.dropout > 0.):
             retain_prob = 1 - self.dropout
             if self.dropout_tied:
@@ -970,7 +970,7 @@ class OutputLayer(object):
             p_ij = p_ij_unnormalised / T.sum(p_ij_unnormalised, axis=1)
             return - T.mean(p_ij * self.target_var)
 
-            # 
+            #
             # p_ij = p_ij_unnormalised / T.sum(p_ij_unnormalised, axis=1)
             # return np.mean(p_ij * self.target_var)
         elif self.error_measure == 'maha':
@@ -1121,8 +1121,8 @@ class StridedConv2DLayer(object):
         self.reset_params()
 
     def reset_params(self):
-        self.W.set_value(np.random.randn(*self.filter_shape).astype(np.float32) * self.weights_std)  
-        self.b.set_value(np.ones(self.n_filters).astype(np.float32) * self.init_bias_value)      
+        self.W.set_value(np.random.randn(*self.filter_shape).astype(np.float32) * self.weights_std)
+        self.b.set_value(np.ones(self.n_filters).astype(np.float32) * self.init_bias_value)
 
     def get_output_shape(self):
         output_width = (self.input_shape[2] - self.filter_width + self.stride_x) // self.stride_x # integer division
@@ -1308,7 +1308,7 @@ class Rot90SliceLayer(object):
     def output(self, *args, **kwargs):
         input = self.input_layer.output(*args, **kwargs)
 
-        ps = self.part_size # shortcut 
+        ps = self.part_size # shortcut
         part0 = input[:, :, :ps, :ps] # 0 degrees
         part1 = input[:, :, :ps, :-ps-1:-1].dimshuffle(0, 1, 3, 2) # 90 degrees
         part2 = input[:, :, :-ps-1:-1, :-ps-1:-1] # 180 degrees
@@ -1363,10 +1363,10 @@ class MultiRotSliceLayer(ConcatenateLayer):
         self.bias_params = []
         self.mb_size = self.input_layers[0].mb_size * 4 * len(self.input_layers)
         # 4 * num_layers times bigger because of the stacking!
-        
+
         if self.include_flip:
             self.mb_size *= 2 # include_flip doubles the number of views.
-        
+
 
     def get_output_shape(self):
         input_shape = self.input_layers[0].get_output_shape()
@@ -1376,7 +1376,7 @@ class MultiRotSliceLayer(ConcatenateLayer):
         parts = []
         for input_layer in self.input_layers:
             input = input_layer.output(*args, **kwargs)
-            ps = self.part_size # shortcut 
+            ps = self.part_size # shortcut
 
             if self.include_flip:
                 input_representations = [input, input[:, :, :, ::-1]] # regular and flipped
@@ -1444,7 +1444,7 @@ class FeatureMaxPoolingLayer_old(object):
 
     Max pooling across feature maps. This can be used to implement maxout.
     This is similar to the FilterPoolingLayer, but this version uses a different
-    implementation that supports input of any dimensionality and can do pooling 
+    implementation that supports input of any dimensionality and can do pooling
     across any of the dimensions. It also supports overlapping pooling (the stride
     and downsample factor can be set separately).
 
@@ -1504,7 +1504,7 @@ class FeatureMaxPoolingLayer(object):
     """
     Max pooling across feature maps. This can be used to implement maxout.
     This is similar to the FilterPoolingLayer, but this version uses a different
-    implementation that supports input of any dimensionality and can do pooling 
+    implementation that supports input of any dimensionality and can do pooling
     across any of the dimensions.
 
     IMPORTANT: this layer requires that feature_dim_size is a multiple of pool_size.
@@ -1556,7 +1556,7 @@ class FeatureMaxPoolingLayer(object):
         elif self.implementation == 'reshape':
             out_feature_dim_size = self.get_output_shape()[self.feature_dim]
             pool_shape = self.input_shape[:self.feature_dim] + (out_feature_dim_size, self.pool_size) + self.input_shape[self.feature_dim + 1:]
-            
+
             input_reshaped = input.reshape(pool_shape)
             output = T.max(input_reshaped, axis=self.feature_dim + 1)
         else:
@@ -1574,41 +1574,23 @@ class SoftmaxLayer(object):
     determine a class membership probability.
     """
 
-    def __init__(self, input, n_in, n_out):
-        """ Initialize the parameters of the logistic regression
+    def __init__(self, input_layer, n_outputs, weights_std, init_bias_value, nonlinearity=rectify):
+        self.n_outputs = n_outputs
+        self.input_layer = input_layer
+        self.weights_std = np.float32(weights_std)
+        self.init_bias_value = np.float32(init_bias_value)
+        self.nonlinearity = nonlinearity
+        self.dropout = dropout
+        self.mb_size = self.input_layer.mb_size
 
-        :type input: theano.tensor.TensorType
-        :param input: symbolic variable that describes the input of the
-                      architecture (one minibatch)
+        input_shape = self.input_layer.get_output_shape()
+        self.n_inputs = int(np.prod(input_shape[1:]))
+        self.flatinput_shape = (self.mb_size, self.n_inputs)
 
-        :type n_in: int
-        :param n_in: number of input units, the dimension of the space in
-                     which the datapoints lie
-
-        :type n_out: int
-        :param n_out: number of output units, the dimension of the space in
-                      which the labels lie
-
-        """
-        # start-snippet-1
-        # initialize with 0 the weights W as a matrix of shape (n_in, n_out)
-        self.W = theano.shared(
-            value=np.zeros(
-                (n_in, n_out),
-                dtype=theano.config.floatX
-            ),
-            name='W',
-            borrow=True
-        )
-        # initialize the baises b as a vector of n_out 0s
-        self.b = theano.shared(
-            value=np.zeros(
-                (n_out,),
-                dtype=theano.config.floatX
-            ),
-            name='b',
-            borrow=True
-        )
+        self.W = shared_single(2) # theano.shared(np.random.randn(self.n_inputs, n_outputs).astype(np.float32) * weights_std)
+        self.b = shared_single(1) # theano.shared(np.ones(n_outputs).astype(np.float32) * self.init_bias_value)
+        self.params = [self.W, self.b]
+        self.bias_params = [self.b]
 
         # symbolic expression for computing the matrix of class-membership
         # probabilities
@@ -1623,12 +1605,18 @@ class SoftmaxLayer(object):
         # symbolic description of how to compute prediction as class whose
         # probability is maximal
         self.y_pred = T.argmax(self.p_y_given_x, axis=1)
-        # end-snippet-1
 
-        # parameters of the model
-        self.params = [self.W, self.b]
+        self.reset_params()
 
-    def negative_log_likelihood(self, y):
+    def reset_params(self):
+        self.W.set_value(np.random.randn(self.n_inputs, self.n_outputs).astype(np.float32) * self.weights_std)
+        self.b.set_value(np.ones(self.n_outputs).astype(np.float32) * self.init_bias_value)
+
+    def get_output_shape(self):
+        return (self.mb_size, self.n_outputs)
+
+
+    def error(self, y):
         """Return the mean of the negative log-likelihood of the prediction
         of this model under a given target distribution.
 
@@ -1646,7 +1634,6 @@ class SoftmaxLayer(object):
         Note: we use the mean instead of the sum so that
               the learning rate is less dependent on the batch size
         """
-        # start-snippet-2
         # y.shape[0] is (symbolically) the number of rows in y, i.e.,
         # number of examples (call it n) in the minibatch
         # T.arange(y.shape[0]) is a symbolic vector which will contain
@@ -1658,9 +1645,8 @@ class SoftmaxLayer(object):
         # the mean (across minibatch examples) of the elements in v,
         # i.e., the mean log-likelihood across the minibatch.
         return -T.mean(T.log(self.p_y_given_x)[T.arange(y.shape[0]), y])
-        # end-snippet-2
 
-    def errors(self, y):
+    def error_rate(self, y):
         """Return a float representing the number of errors in the minibatch
         over the total number of examples of the minibatch ; zero one
         loss over the size of the minibatch
@@ -1684,6 +1670,8 @@ class SoftmaxLayer(object):
         else:
             raise NotImplementedError()
 
+    def predictions(self, *args, **kwargs):
+        return self.y_pred
 
 
 def dump_params(l, **kwargs):
