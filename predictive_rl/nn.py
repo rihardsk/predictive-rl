@@ -34,11 +34,10 @@ class NN():
         )
 
         self._idx = T.lscalar('idx')
-
         self.x_shared = theano.shared(
-            np.zeros((1, 1), dtype=theano.config.floatX))
+            np.zeros(self.layers[0].get_output_shape(), dtype=theano.config.floatX))
         self.y_shared = theano.shared(
-            np.zeros((1, 1), dtype=theano.config.floatX))
+            np.zeros(self.layers[-1].get_output_shape(), dtype=theano.config.floatX))
 
         self._givens = {
             self.layers[0].input_var: self.x_shared[self._idx * self._batch_size:(self._idx+1)*self._batch_size, :],

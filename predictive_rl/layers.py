@@ -951,6 +951,9 @@ class OutputLayer(object):
         if error_measure == 'maha':
             self.target_cov_var = T.tensor3()
 
+    def get_output_shape(self):
+        return self.input_layer.get_output_shape()
+
     def error(self, *args, **kwargs):
         input = self.input_layer.output(*args, **kwargs)
 
