@@ -187,11 +187,19 @@ gen_updates = gen_updates_nesterov_momentum
 
 
 def gen_updates_sgd(loss, all_parameters, learning_rate):
-    all_grads = [theano.grad(loss, param) for param in all_parameters]
-    updates = []
-    for param_i, grad_i in zip(all_parameters, all_grads):
-        updates.append((param_i, param_i - learning_rate * grad_i))
+    grads = T.grad(loss, all_parameters)
+    # for grad, i in zip(grads, xrange(len(grads))):
+    #     theano.printing.pydotprint(grad, '%i_grad.png' % i)
+    updates = [
+        (param_i, param_i - learning_rate * grad_i)
+        for param_i, grad_i in zip(all_parameters, grads)
+    ]
     return updates
+    # all_grads = [theano.grad(loss, param) for param in all_parameters]
+    # updates = []
+    # for param_i, grad_i in zip(all_parameters, all_grads):
+    #     updates.append((param_i, param_i - learning_rate * grad_i))
+    # return updates
 
 
 
@@ -452,6 +460,8 @@ class DenseLayer(object):
         self.b = shared_single(1) # theano.shared(np.ones(n_outputs).astype(np.float32) * self.init_bias_value)
         self.W_print = theano.printing.Print('hidden weights')(self.W)
         self.b_print = theano.printing.Print('hidden bias')(self.b)
+        self.W.name = 'W_' + self.__class__.__name__
+        self.b.name = 'b_' + self.__class__.__name__
         self.params = [self.W, self.b]
         self.bias_params = [self.b]
         self.reset_params()
@@ -745,6 +755,8 @@ class Conv2DLayer(object):
 
         self.W = shared_single(4) # theano.shared(np.random.randn(*self.filter_shape).astype(np.float32) * self.weights_std)
         self.b = shared_single(1) # theano.shared(np.ones(n_filters).astype(np.float32) * self.init_bias_value)
+        self.W.name = 'W_' + self.__class__.__name__
+        self.b.name = 'b_' + self.__class__.__name__
         self.params = [self.W, self.b]
         self.bias_params = [self.b]
         self.reset_params()
@@ -948,6 +960,8 @@ class OutputLayer(object):
         self.mb_size = self.input_layer.mb_size
 
         self.target_var = T.matrix() # variable for the labels
+        self.target_var = theano.gradient.consider_constant(self.target_var)
+        self.target_var.name = 'target_var_' + self.__class__.__name__
         if error_measure == 'maha':
             self.target_cov_var = T.tensor3()
 
@@ -1583,15 +1597,19 @@ class SoftmaxLayer(object):
         self.weights_std = np.float32(weights_std)
         self.init_bias_value = np.float32(init_bias_value)
         self.nonlinearity = nonlinearity
-        self.dropout = dropout
         self.mb_size = self.input_layer.mb_size
 
+        self.target_var = T.imatrix() # variable for the labels TODO: figure out how to use icol and have no type confilcts
+        self.target_var = theano.gradient.consider_constant(self.target_var)
+        self.target_var.name = 'target_var_' + self.__class__.__name__
         input_shape = self.input_layer.get_output_shape()
         self.n_inputs = int(np.prod(input_shape[1:]))
         self.flatinput_shape = (self.mb_size, self.n_inputs)
 
         self.W = shared_single(2) # theano.shared(np.random.randn(self.n_inputs, n_outputs).astype(np.float32) * weights_std)
         self.b = shared_single(1) # theano.shared(np.ones(n_outputs).astype(np.float32) * self.init_bias_value)
+        self.W.name = 'W_' + self.__class__.__name__
+        self.b.name = 'b_' + self.__class__.__name__
         self.params = [self.W, self.b]
         self.bias_params = [self.b]
 
@@ -1603,11 +1621,11 @@ class SoftmaxLayer(object):
         # x is a matrix where row-j  represents input training sample-j
         # b is a vector where element-k represent the free parameter of hyper
         # plain-k
-        self.p_y_given_x = T.nnet.softmax(T.dot(input, self.W) + self.b)
+        self.p_y_given_x = T.nnet.softmax(T.dot(input_layer.output(), self.W) + self.b) # TODO pass dropout to ouput?
 
         # symbolic description of how to compute prediction as class whose
         # probability is maximal
-        self.y_pred = T.argmax(self.p_y_given_x, axis=1)
+        self.y_pred = T.argmax(self.p_y_given_x, axis=1).astype('int32')
 
         self.reset_params()
 
@@ -1619,7 +1637,7 @@ class SoftmaxLayer(object):
         return (self.mb_size, self.n_outputs)
 
 
-    def error(self, y):
+    def error(self):
         """Return the mean of the negative log-likelihood of the prediction
         of this model under a given target distribution.
 
@@ -1637,6 +1655,7 @@ class SoftmaxLayer(object):
         Note: we use the mean instead of the sum so that
               the learning rate is less dependent on the batch size
         """
+        y = self.target_var
         # y.shape[0] is (symbolically) the number of rows in y, i.e.,
         # number of examples (call it n) in the minibatch
         # T.arange(y.shape[0]) is a symbolic vector which will contain
@@ -1649,7 +1668,39 @@ class SoftmaxLayer(object):
         # i.e., the mean log-likelihood across the minibatch.
         return -T.mean(T.log(self.p_y_given_x)[T.arange(y.shape[0]), y])
 
-    def error_rate(self, y):
+    def negative_log_likelihood(self, y):
+        """Return the mean of the negative log-likelihood of the prediction
+        of this model under a given target distribution.
+
+        .. math::
+
+            \frac{1}{|\mathcal{D}|} \mathcal{L} (\theta=\{W,b\}, \mathcal{D}) =
+            \frac{1}{|\mathcal{D}|} \sum_{i=0}^{|\mathcal{D}|}
+                \log(P(Y=y^{(i)}|x^{(i)}, W,b)) \\
+            \ell (\theta=\{W,b\}, \mathcal{D})
+
+        :type y: theano.tensor.TensorType
+        :param y: corresponds to a vector that gives for each example the
+                  correct label
+
+        Note: we use the mean instead of the sum so that
+              the learning rate is less dependent on the batch size
+        """
+        # start-snippet-2
+        # y.shape[0] is (symbolically) the number of rows in y, i.e.,
+        # number of examples (call it n) in the minibatch
+        # T.arange(y.shape[0]) is a symbolic vector which will contain
+        # [0,1,2,... n-1] T.log(self.p_y_given_x) is a matrix of
+        # Log-Probabilities (call it LP) with one row per example and
+        # one column per class LP[T.arange(y.shape[0]),y] is a vector
+        # v containing [LP[0,y[0]], LP[1,y[1]], LP[2,y[2]], ...,
+        # LP[n-1,y[n-1]]] and T.mean(LP[T.arange(y.shape[0]),y]) is
+        # the mean (across minibatch examples) of the elements in v,
+        # i.e., the mean log-likelihood across the minibatch.
+        return -T.mean(T.log(self.p_y_given_x)[T.arange(y.shape[0]), y])
+        # end-snippet-2
+
+    def error_rate(self):
         """Return a float representing the number of errors in the minibatch
         over the total number of examples of the minibatch ; zero one
         loss over the size of the minibatch
@@ -1658,6 +1709,7 @@ class SoftmaxLayer(object):
         :param y: corresponds to a vector that gives for each example the
                   correct label
         """
+        y = self.target_var
 
         # check if y has same dimension of y_pred
         if y.ndim != self.y_pred.ndim:
@@ -1674,8 +1726,10 @@ class SoftmaxLayer(object):
             raise NotImplementedError()
 
     def predictions(self, *args, **kwargs):
-        return self.y_pred
+        return self.y_pred # pass args and kwargs
 
+    def output(self, *args, **kwargs):
+        return self.predictions(*args, **kwargs)
 
 def dump_params(l, **kwargs):
     """
