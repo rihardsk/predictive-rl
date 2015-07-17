@@ -391,31 +391,62 @@ class NN():
 
         nn_layers.append(layers.Input2DLayer(batch_size, 1, 28, 28))
         nn_layers[0].input_var = x.reshape((batch_size, 1, 28, 28))
+        nn_layers.append(layers.StridedConv2DLayer(nn_layers[-1],
+                                                     n_filters=nkerns[0],
+                                                     filter_width=5,
+                                                     filter_height=5,
+                                                     stride_x=2,
+                                                     stride_y=2,
+                                                     weights_std=.01,
+                                                     init_bias_value=0.01,
+                                                     nonlinearity=T.tanh))
+        # nn_layers.append(layers.Conv2DLayer(nn_layers[-1], nkerns[0], 5, 5, .01, .01, nonlinearity=T.tanh))
+        # nn_layers.append(layers.Pooling2DLayer(nn_layers[-1], pool_size=(2, 2)))
 
-        nn_layers.append(LeNetConvPoolLayer(
-            rng,
-            input=nn_layers[-1].output(),
-            image_shape=(batch_size, 1, 28, 28),
-            filter_shape=(nkerns[0], 1, 5, 5),
-            poolsize=(2, 2)
-        ))
-        nn_layers.append(LeNetConvPoolLayer(
-            rng,
-            input=nn_layers[-1].output,
-            image_shape=(batch_size, nkerns[0], 12, 12),
-            filter_shape=(nkerns[1], nkerns[0], 5, 5),
-            poolsize=(2, 2)
-        ))
-        layer2_input = nn_layers[-1].output.flatten(2)
-        nn_layers.append(HiddenLayer(
-            rng,
-            input=layer2_input,
-            n_in=nkerns[1] * 4 * 4,
-            n_out=500,
-            activation=T.tanh
-        ))
 
-        nn_layers.append(LogisticRegression(input=nn_layers[-1].output, n_in=500, n_out=10))
+        # nn_layers.append(LeNetConvPoolLayer(
+        #     rng,
+        #     input=nn_layers[-1].output(),
+        #     image_shape=(batch_size, 1, 28, 28),
+        #     filter_shape=(nkerns[0], 1, 5, 5),
+        #     poolsize=(2, 2)
+        # ))
+
+        nn_layers.append(layers.StridedConv2DLayer(nn_layers[-1],
+                                                     n_filters=nkerns[1],
+                                                     filter_width=5,
+                                                     filter_height=5,
+                                                     stride_x=2,
+                                                     stride_y=2,
+                                                     weights_std=.01,
+                                                     init_bias_value=0.01,
+                                                     nonlinearity=T.tanh))
+        # nn_layers.append(layers.Conv2DLayer(nn_layers[-1], nkerns[1], 5, 5, .01, .01))
+        # nn_layers.append(layers.Pooling2DLayer(nn_layers[-1], pool_size=(2, 2)))
+
+        # nn_layers.append(LeNetConvPoolLayer(
+        #     rng,
+        #     input=nn_layers[-1].output(),
+        #     image_shape=(batch_size, nkerns[0], 12, 12),
+        #     filter_shape=(nkerns[1], nkerns[0], 5, 5),
+        #     poolsize=(2, 2)
+        # ))
+
+
+        nn_layers.append(layers.DenseLayer(nn_layers[-1], 500, 0.1, 0, nonlinearity=layers.tanh))
+
+        # layer2_input = nn_layers[-1].output().flatten(2)
+        # nn_layers.append(HiddenLayer(
+        #     rng,
+        #     input=layer2_input,
+        #     n_in=nkerns[1] * 4 * 4,
+        #     n_out=500,
+        #     activation=T.tanh
+        # ))
+
+        nn_layers.append(layers.SoftmaxLayer(nn_layers[-1], 10, 0.1, 0, nonlinearity=layers.tanh))
+
+        # nn_layers.append(LogisticRegression(input=nn_layers[-1].output(), n_in=500, n_out=10))
 
 
         # self._fprop = theano.function(
@@ -424,7 +455,7 @@ class NN():
         # )
 
         # self.parameters = layers.all_parameters(self.layers[-1])
-        self.parameters = nn_layers[4].params + nn_layers[3].params + nn_layers[2].params + nn_layers[1].params
+        self.parameters = [param for layer in nn_layers[1:] for param in layer.params] #nn_layers[5].params + nn_layers[4].params + nn_layers[3].params + nn_layers[2].params + nn_layers[1].params
 
         #self.cost = self.layers[-1].error()
         cost = self.layers[-1].negative_log_likelihood(y)
