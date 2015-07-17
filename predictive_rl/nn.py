@@ -454,23 +454,23 @@ class NN():
         #     self.output()
         # )
 
-        # self.parameters = layers.all_parameters(self.layers[-1])
-        self.parameters = [param for layer in nn_layers[1:] for param in layer.params] #nn_layers[5].params + nn_layers[4].params + nn_layers[3].params + nn_layers[2].params + nn_layers[1].params
+        self.parameters = layers.all_parameters(self.layers[-1])
+        # self.parameters = [param for layer in nn_layers[1:] for param in layer.params] #nn_layers[5].params + nn_layers[4].params + nn_layers[3].params + nn_layers[2].params + nn_layers[1].params
 
         #self.cost = self.layers[-1].error()
-        cost = self.layers[-1].negative_log_likelihood(y)
+        self.cost = self.layers[-1].negative_log_likelihood(y)
 
-        grads = T.grad(cost, self.parameters)
+        # grads = T.grad(cost, self.parameters)
 
-        # self.regularization = sum([(W_or_b ** 2).sum() for W_or_b in self.parameters])
+        self.regularization = sum([(W_or_b ** 2).sum() for W_or_b in self.parameters])
 
-        #self.updates = layers.gen_updates_sgd(self.cost + self.regularization * L2_reg, self.parameters, learning_rate) # the last layer must be a layers.OutputLayer
-        #self.updates = layers.gen_updates_sgd(cost, self.parameters, learning_rate) # the last layer must be a layers.OutputLayer
+        self.updates = layers.gen_updates_sgd(self.cost + self.regularization * L2_reg, self.parameters, learning_rate) # the last layer must be a layers.OutputLayer
+        # self.updates = layers.gen_updates_sgd(cost, self.parameters, learning_rate) # the last layer must be a layers.OutputLayer
 
-        updates = [
-            (param_i, param_i - learning_rate * grad_i)
-            for param_i, grad_i in zip(self.parameters, grads)
-        ]
+        # self.updates = [
+        #     (param_i, param_i - learning_rate * grad_i)
+        #     for param_i, grad_i in zip(self.parameters, grads)
+        # ]
 
         # theano.pp(self.updates)
         # self.train_model = theano.function(
@@ -492,9 +492,9 @@ class NN():
 
         self._train_model_batch = theano.function(
             inputs=[self._idx],
-            updates=updates,
+            updates=self.updates,
             givens=self._givens,
-            outputs=cost
+            outputs=self.cost
         )
 
         # self._output_model_batch = theano.function(
