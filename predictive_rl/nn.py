@@ -98,7 +98,7 @@ class NN():
         nkerns = [20, 50]
         # nn_layers.append(layers.Input2DLayer(batch_size, 1, 28, 28, scale=255))
 
-        x = T.matrix('x')   # the data is presented as rasterized images
+        # x = T.matrix('x')   # the data is presented as rasterized images
         y = T.ivector('y')  # the labels are presented as 1D vector of
         """
         nn_layers[0].input_var = x.reshape((batch_size, 1, 28, 28))
@@ -121,7 +121,7 @@ class NN():
         # layer0_input = x.reshape((batch_size, 1, 28, 28))
 
         nn_layers.append(layers.Input2DLayer(batch_size, 1, 28, 28))
-        nn_layers[0].input_var = x.reshape((batch_size, 1, 28, 28))
+        # nn_layers[0].input_var = x.reshape((batch_size, 1, 28, 28))
         nn_layers.append(layers.StridedConv2DLayer(nn_layers[-1],
                                                      n_filters=nkerns[0],
                                                      filter_width=5,
@@ -217,7 +217,7 @@ class NN():
         #     np.zeros(self.layers[-1].get_output_shape(), dtype=self.layers[-1].output().dtype))
 
         self._givens = {
-            x: train_set_x[self._idx * self._batch_size: (self._idx+1)*self._batch_size],
+            self.layers[0].input_var: train_set_x[self._idx * self._batch_size: (self._idx+1)*self._batch_size],
             y: train_set_y[self._idx * self._batch_size: (self._idx+1)*self._batch_size],
         }
 

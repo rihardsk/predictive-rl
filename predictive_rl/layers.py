@@ -355,14 +355,16 @@ class Input2DLayer(object):
         self.n_features = n_features
         self.width = width
         self.height = height
-        self.input_var = T.tensor4('input')
+        # self.input_var = T.tensor4('input')
+        self.input_var = T.matrix()
+        self.output_var = self.input_var.reshape((mb_size, n_features, width, height))
         self.scale = scale
 
     def get_output_shape(self):
         return (self.mb_size, self.n_features, self.width, self.height)
 
     def output(self, *args, **kwargs):
-        return self.input_var / self.scale
+        return self.output_var / self.scale
 
 
 
