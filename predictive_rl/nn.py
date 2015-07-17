@@ -12,7 +12,7 @@ import cPickle, gzip
 import time
 
 class NN():
-    def __init__(self, nn_layers=None, L2_reg=0.0001, learning_rate=0.0001, batch_size=32):
+    def __init__(self, nn_layers=None, L2_reg=0.0001, learning_rate=0.1, batch_size=32):
         self.layers = nn_layers
         #TODO: maybe initialize layers and set all inputs as prev outputs
 
@@ -214,7 +214,7 @@ def test_convnet():
 
     nn_layers = []
     nkerns = [20, 50]
-    nn_layers.append(layers.Input2DLayer(batch_size, 1, 28, 28, scale=255))
+    nn_layers.append(layers.Input2DLayer(batch_size, 1, 28, 28))
     nn_layers.append(layers.Conv2DLayer(nn_layers[-1], nkerns[0], 5, 5, .01, .01))
     nn_layers.append(layers.Pooling2DLayer(nn_layers[-1], pool_size=(2, 2)))
     nn_layers.append(layers.Conv2DLayer(nn_layers[-1], nkerns[1], 5, 5, .01, .01))
