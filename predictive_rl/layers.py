@@ -1125,11 +1125,11 @@ class StridedConv2DLayer(object):
 
         self.filter_shape = (n_filters, self.input_shape[1], filter_width, filter_height)
 
-        if self.filter_width % self.stride_x != 0:
-            raise RuntimeError("Filter width is not a multiple of the stride in the X direction")
+        if self.input_shape[2] % self.stride_x != 0:
+            raise RuntimeError("Input width is not a multiple of the stride in the X direction")
 
-        if self.filter_height % self.stride_y != 0:
-            raise RuntimeError("Filter height is not a multiple of the stride in the Y direction")
+        if self.input_shape[3] % self.stride_y != 0:
+            raise RuntimeError("Input height is not a multiple of the stride in the Y direction")
 
         self.W = shared_single(4) # theano.shared(np.random.randn(*self.filter_shape).astype(np.float32) * self.weights_std)
         self.b = shared_single(1) # theano.shared(np.ones(n_filters).astype(np.float32) * self.init_bias_value)
