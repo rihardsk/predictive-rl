@@ -1138,7 +1138,23 @@ class StridedConv2DLayer(object):
         self.reset_params()
 
     def reset_params(self):
-        self.W.set_value(np.random.randn(*self.filter_shape).astype(np.float32) * self.weights_std)
+        # there are "num input feature maps * filter height * filter width"
+        # inputs to each hidden unit
+        fan_in = np.prod(self.filter_shape[1:])
+        # each unit in the lower layer receives a gradient from:
+        # "num output feature maps * filter height * filter width" /
+        #   pooling size
+        fan_out = (self.filter_shape[0] * np.prod(self.filter_shape[2:]) /
+                   np.prod((self.stride_x, self.stride_y)))
+        # initialize weights with random weights
+        W_bound = np.sqrt(6. / (fan_in + fan_out))
+        self.W.set_value(
+            np.asarray(
+                np.random.uniform(low=-W_bound, high=W_bound, size=self.filter_shape),
+                dtype=theano.config.floatX
+            )
+        )
+        # self.W.set_value(np.random.randn(*self.filter_shape).astype(np.float32) * self.weights_std)
         self.b.set_value(np.ones(self.n_filters).astype(np.float32) * self.init_bias_value)
 
     def get_output_shape(self):
