@@ -93,13 +93,13 @@ def load_data(dataset):
 
 
 class NN():
-    def __init__(self, train_set_x, train_set_y, nn_layers=None, L2_reg=0.0001, learning_rate=0.1, batch_size=32):
+    def __init__(self, train_set_x, train_set_y, nn_layers=None, L2_reg=0.0001, learning_rate=0.001, batch_size=32, discrete_target=False):
         nn_layers = []
         nkerns = [20, 50]
         # nn_layers.append(layers.Input2DLayer(batch_size, 1, 28, 28, scale=255))
 
         # x = T.matrix('x')   # the data is presented as rasterized images
-        y = T.ivector('y')  # the labels are presented as 1D vector of
+        # y = T.ivector('y')  # the labels are presented as 1D vector of
         """
         nn_layers[0].input_var = x.reshape((batch_size, 1, 28, 28))
         nn_layers.append(layers.Conv2DLayer(nn_layers[-1], nkerns[0], 5, 5, .01, .01))
@@ -188,8 +188,8 @@ class NN():
         self.parameters = layers.all_parameters(self.layers[-1])
         # self.parameters = [param for layer in nn_layers[1:] for param in layer.params] #nn_layers[5].params + nn_layers[4].params + nn_layers[3].params + nn_layers[2].params + nn_layers[1].params
 
-        #self.cost = self.layers[-1].error()
-        self.cost = self.layers[-1].negative_log_likelihood(y)
+        self.cost = self.layers[-1].error()
+        # self.cost = self.layers[-1].negative_log_likelihood(y)
 
         # grads = T.grad(cost, self.parameters)
 
@@ -213,12 +213,12 @@ class NN():
         self._idx = T.lscalar('idx')
         # self.x_shared = theano.shared(
         #     np.zeros(self.layers[0].get_output_shape(), dtype=theano.config.floatX))
-        # self.y_shared = theano.shared(
-        #     np.zeros(self.layers[-1].get_output_shape(), dtype=self.layers[-1].output().dtype))
+        self.y_shared = theano.shared(
+            np.zeros(self.layers[-1].get_output_shape(), dtype=theano.config.floatX))
 
         self._givens = {
             self.layers[0].input_var: train_set_x[self._idx * self._batch_size: (self._idx+1)*self._batch_size],
-            y: train_set_y[self._idx * self._batch_size: (self._idx+1)*self._batch_size],
+            self.layers[-1].target_var: self.y_shared[self._idx * self._batch_size: (self._idx+1)*self._batch_size],
         }
 
         self._train_model_batch = theano.function(
@@ -250,7 +250,7 @@ class NN():
     def train_model_batch(self, X, Y, epochs=20):
         num_batches_valid = X.get_value(borrow=True).shape[0] // self._batch_size
         # self.x_shared.set_value(X)
-        # self.y_shared.set_value(Y)
+        self.y_shared.set_value(Y)
         epoch_losses = []
         for epoch in xrange(epochs):
             losses = []
@@ -350,17 +350,22 @@ def test_convnet():
     n_epochs = 200
 
     # Load the dataset
-    #f = gzip.open('data/mnist.pkl.gz', 'rb')
-    train_set, valid_set, test_set = load_data('mnist.pkl.gz') #cPickle.load(f)
-    # f.close()
+    f = gzip.open('data/mnist.pkl.gz', 'rb')
+    train_set, valid_set, test_set = cPickle.load(f)
+    f.close()
 
-    test_set_x, test_set_y = test_set
-    valid_set_x, valid_set_y = valid_set
+    # test_set_x, test_set_y = test_set
+    # valid_set_x, valid_set_y = valid_set
     train_set_x, train_set_y = train_set
+
+    train_set_shared, valid_set_shared, test_set_shared = load_data('mnist.pkl.gz')
+    train_set_x_shared, train_set_y_shared = train_set_shared
+
 
     # test_set_x = np.asarray(test_set_x, dtype=theano.config.floatX)
     # train_set_x = np.asarray(train_set_x, dtype=theano.config.floatX)
-    # train_set_y = np.asarray(train_set_y, dtype='int32')
+    train_set_y = np.asarray(train_set_y, dtype=theano.config.floatX)
+    train_set_y = train_set_y.reshape(train_set_y.shape[0], 1)
 
     # test_set_y_vect = [[int(b) for b in list("{0:010b}".format(1 << num))[::-1]] for num in test_set_y]
     # train_set_y_vect = np.asmatrix([[int(b) for b in list("{0:010b}".format(1 << num))[::-1]] for num in train_set_y], dtype=theano.config.floatX)
@@ -394,7 +399,7 @@ def test_convnet():
     # nn_layers.append(layers.SoftmaxLayer(nn_layers[-1], 10, 0.1, 0, nonlinearity=layers.tanh))
     # #nn_layers.append(layers.OutputLayer(nn_layers[-1]))
 
-    mlp = NN(train_set_x, train_set_y, batch_size=batch_size)
+    mlp = NN(train_set_x_shared, train_set_y, batch_size=batch_size)
     """
     ###############
     # TRAIN MODEL #
@@ -477,7 +482,7 @@ def test_convnet():
                           ' ran for %.2fm' % ((end_time - start_time) / 60.))
     """
     start_time = time.clock()
-    train_losses = mlp.train_model_batch(train_set_x, train_set_y, n_epochs)
+    train_losses = mlp.train_model_batch(train_set_x_shared, train_set_y, n_epochs)
     end_time = time.clock()
     print >> sys.stderr, ('The code ran for %.2fm' % ((end_time - start_time) / 60.))
     print 'train losses'
