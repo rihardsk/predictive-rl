@@ -93,7 +93,7 @@ def load_data(dataset):
 
 
 class NN():
-    def __init__(self, train_set_x, train_set_y, nn_layers=None, L2_reg=0.0001, learning_rate=0.001, batch_size=32, discrete_target=False):
+    def __init__(self, train_set_x, train_set_y, nn_layers=None, L2_reg=0.0001, learning_rate=0.1, batch_size=32, discrete_target=False):
         nn_layers = []
         nkerns = [20, 50]
         # nn_layers.append(layers.Input2DLayer(batch_size, 1, 28, 28, scale=255))
@@ -214,11 +214,15 @@ class NN():
         # self.x_shared = theano.shared(
         #     np.zeros(self.layers[0].get_output_shape(), dtype=theano.config.floatX))
         self.y_shared = theano.shared(
-            np.zeros(self.layers[-1].get_output_shape(), dtype=theano.config.floatX))
+            # np.asarray(
+                np.zeros(self._batch_size, dtype=theano.config.floatX)
+            # )
+        )
+        self.y_converted = T.cast(self.y_shared, 'int32')
 
         self._givens = {
             self.layers[0].input_var: train_set_x[self._idx * self._batch_size: (self._idx+1)*self._batch_size],
-            self.layers[-1].target_var: self.y_shared[self._idx * self._batch_size: (self._idx+1)*self._batch_size],
+            self.layers[-1].target_var: self.y_converted[self._idx * self._batch_size: (self._idx+1)*self._batch_size],
         }
 
         self._train_model_batch = theano.function(
@@ -365,7 +369,7 @@ def test_convnet():
     # test_set_x = np.asarray(test_set_x, dtype=theano.config.floatX)
     # train_set_x = np.asarray(train_set_x, dtype=theano.config.floatX)
     train_set_y = np.asarray(train_set_y, dtype=theano.config.floatX)
-    train_set_y = train_set_y.reshape(train_set_y.shape[0], 1)
+    # train_set_y = train_set_y.reshape(train_set_y.shape[0], 1)
 
     # test_set_y_vect = [[int(b) for b in list("{0:010b}".format(1 << num))[::-1]] for num in test_set_y]
     # train_set_y_vect = np.asmatrix([[int(b) for b in list("{0:010b}".format(1 << num))[::-1]] for num in train_set_y], dtype=theano.config.floatX)

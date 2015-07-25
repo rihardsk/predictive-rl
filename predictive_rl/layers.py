@@ -1617,7 +1617,7 @@ class SoftmaxLayer(object):
         self.nonlinearity = nonlinearity
         self.mb_size = self.input_layer.mb_size
 
-        self.target_var = T.matrix() # variable for the labels TODO: figure out how to use icol and have no type confilcts
+        self.target_var = T.ivector() # variable for the labels TODO: figure out how to use icol and have no type confilcts
         # self.target_var = theano.gradient.consider_constant(self.target_var)
         self.target_var.name = 'target_var_' + self.__class__.__name__
         input_shape = self.input_layer.get_output_shape()
@@ -1673,7 +1673,7 @@ class SoftmaxLayer(object):
         Note: we use the mean instead of the sum so that
               the learning rate is less dependent on the batch size
         """
-        y = T.cast(self.target_var, 'int32')
+        y = self.target_var
         # y.shape[0] is (symbolically) the number of rows in y, i.e.,
         # number of examples (call it n) in the minibatch
         # T.arange(y.shape[0]) is a symbolic vector which will contain
@@ -1727,7 +1727,7 @@ class SoftmaxLayer(object):
         :param y: corresponds to a vector that gives for each example the
                   correct label
         """
-        y = T.cast(self.target_var, 'int32')
+        y = self.target_var
 
         # check if y has same dimension of y_pred
         if y.ndim != self.y_pred.ndim:
