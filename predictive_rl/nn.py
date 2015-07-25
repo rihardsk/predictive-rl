@@ -93,24 +93,8 @@ def load_data(dataset):
 
 
 class NN():
-    def __init__(self, train_set_x, train_set_y, nn_layers=None, L2_reg=0.0001, learning_rate=0.1, batch_size=32, discrete_target=False):
-        nn_layers = []
+    def __init__(self, nn_layers, L2_reg=0.0001, learning_rate=0.1, batch_size=32, discrete_target=False):
         nkerns = [20, 50]
-        # nn_layers.append(layers.Input2DLayer(batch_size, 1, 28, 28, scale=255))
-
-        # x = T.matrix('x')   # the data is presented as rasterized images
-        # y = T.ivector('y')  # the labels are presented as 1D vector of
-        """
-        nn_layers[0].input_var = x.reshape((batch_size, 1, 28, 28))
-        nn_layers.append(layers.Conv2DLayer(nn_layers[-1], nkerns[0], 5, 5, .01, .01))
-        nn_layers.append(layers.Pooling2DLayer(nn_layers[-1], pool_size=(2, 2)))
-        nn_layers.append(layers.Conv2DLayer(nn_layers[-1], nkerns[1], 5, 5, .01, .01))
-        nn_layers.append(layers.Pooling2DLayer(nn_layers[-1], pool_size=(2, 2)))
-        #nn_layers.append(layers.FlattenLayer(nn_layers[-1]))
-        nn_layers.append(layers.DenseLayer(nn_layers[-1], 500, 0.1, 0, nonlinearity=layers.tanh))
-        nn_layers.append(layers.SoftmaxLayer(nn_layers[-1], 10, 0.1, 0, nonlinearity=layers.tanh))
-        #nn_layers.append(layers.OutputLayer(nn_layers[-1]))
-        """
 
         self.layers = nn_layers
         #TODO: maybe initialize layers and set all inputs as prev outputs
@@ -118,66 +102,6 @@ class NN():
         self._batch_size = batch_size
 
         rng = np.random.RandomState(23455)
-        # layer0_input = x.reshape((batch_size, 1, 28, 28))
-
-        nn_layers.append(layers.Input2DLayer(batch_size, 1, 28, 28))
-        # nn_layers[0].input_var = x.reshape((batch_size, 1, 28, 28))
-        nn_layers.append(layers.StridedConv2DLayer(nn_layers[-1],
-                                                     n_filters=nkerns[0],
-                                                     filter_width=5,
-                                                     filter_height=5,
-                                                     stride_x=2,
-                                                     stride_y=2,
-                                                     weights_std=.01,
-                                                     init_bias_value=0.01,
-                                                     nonlinearity=T.tanh))
-        # nn_layers.append(layers.Conv2DLayer(nn_layers[-1], nkerns[0], 5, 5, .01, .01, nonlinearity=T.tanh))
-        # nn_layers.append(layers.Pooling2DLayer(nn_layers[-1], pool_size=(2, 2)))
-
-
-        # nn_layers.append(LeNetConvPoolLayer(
-        #     rng,
-        #     input=nn_layers[-1].output(),
-        #     image_shape=(batch_size, 1, 28, 28),
-        #     filter_shape=(nkerns[0], 1, 5, 5),
-        #     poolsize=(2, 2)
-        # ))
-
-        nn_layers.append(layers.StridedConv2DLayer(nn_layers[-1],
-                                                     n_filters=nkerns[1],
-                                                     filter_width=5,
-                                                     filter_height=5,
-                                                     stride_x=2,
-                                                     stride_y=2,
-                                                     weights_std=.01,
-                                                     init_bias_value=0.01,
-                                                     nonlinearity=T.tanh))
-        # nn_layers.append(layers.Conv2DLayer(nn_layers[-1], nkerns[1], 5, 5, .01, .01))
-        # nn_layers.append(layers.Pooling2DLayer(nn_layers[-1], pool_size=(2, 2)))
-
-        # nn_layers.append(LeNetConvPoolLayer(
-        #     rng,
-        #     input=nn_layers[-1].output(),
-        #     image_shape=(batch_size, nkerns[0], 12, 12),
-        #     filter_shape=(nkerns[1], nkerns[0], 5, 5),
-        #     poolsize=(2, 2)
-        # ))
-
-
-        nn_layers.append(layers.DenseLayer(nn_layers[-1], 500, 0.1, 0, nonlinearity=layers.tanh))
-
-        # layer2_input = nn_layers[-1].output().flatten(2)
-        # nn_layers.append(HiddenLayer(
-        #     rng,
-        #     input=layer2_input,
-        #     n_in=nkerns[1] * 4 * 4,
-        #     n_out=500,
-        #     activation=T.tanh
-        # ))
-
-        nn_layers.append(layers.SoftmaxLayer(nn_layers[-1], 10, 0.1, 0, nonlinearity=layers.tanh))
-
-        # nn_layers.append(LogisticRegression(input=nn_layers[-1].output(), n_in=500, n_out=10))
 
 
         # self._fprop = theano.function(
@@ -395,8 +319,8 @@ def test_convnet():
     """
 
 
-    # nn_layers = []
-    # nkerns = [20, 50]
+    nn_layers = []
+    nkerns = [20, 50]
     # nn_layers.append(layers.Input2DLayer(batch_size, 1, 28, 28, scale=255))
     # nn_layers.append(layers.Conv2DLayer(nn_layers[-1], nkerns[0], 5, 5, .01, .01))
     # nn_layers.append(layers.Pooling2DLayer(nn_layers[-1], pool_size=(2, 2)))
@@ -407,7 +331,32 @@ def test_convnet():
     # nn_layers.append(layers.SoftmaxLayer(nn_layers[-1], 10, 0.1, 0, nonlinearity=layers.tanh))
     # #nn_layers.append(layers.OutputLayer(nn_layers[-1]))
 
-    mlp = NN(train_set_x_shared, train_set_y, batch_size=batch_size, discrete_target=True)
+    nn_layers.append(layers.Input2DLayer(batch_size, 1, 28, 28))
+    nn_layers.append(layers.StridedConv2DLayer(nn_layers[-1],
+                                                    n_filters=nkerns[0],
+                                                    filter_width=5,
+                                                    filter_height=5,
+                                                    stride_x=2,
+                                                    stride_y=2,
+                                                    weights_std=.01,
+                                                    init_bias_value=0.01,
+                                                    nonlinearity=T.tanh))
+
+    nn_layers.append(layers.StridedConv2DLayer(nn_layers[-1],
+                                                    n_filters=nkerns[1],
+                                                    filter_width=5,
+                                                    filter_height=5,
+                                                    stride_x=2,
+                                                    stride_y=2,
+                                                    weights_std=.01,
+                                                    init_bias_value=0.01,
+                                                    nonlinearity=T.tanh))
+
+    nn_layers.append(layers.DenseLayer(nn_layers[-1], 500, 0.1, 0, nonlinearity=layers.tanh))
+
+    nn_layers.append(layers.SoftmaxLayer(nn_layers[-1], 10, 0.1, 0, nonlinearity=layers.tanh))
+
+    mlp = NN(nn_layers, batch_size=batch_size, discrete_target=True)
     """
     ###############
     # TRAIN MODEL #
