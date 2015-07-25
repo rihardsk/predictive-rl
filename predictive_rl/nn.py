@@ -211,8 +211,11 @@ class NN():
         # )
 
         self._idx = T.lscalar('idx')
-        # self.x_shared = theano.shared(
-        #     np.zeros(self.layers[0].get_output_shape(), dtype=theano.config.floatX))
+        self.x_shared = theano.shared(
+            # np.asarray(
+                np.zeros(self.layers[0].get_output_shape(), dtype=theano.config.floatX)
+            # )
+        )
         self.y_shared = theano.shared(
             # np.asarray(
                 np.zeros(self.layers[-1].get_output_shape(), dtype=theano.config.floatX)
@@ -221,7 +224,7 @@ class NN():
         self.y_converted = T.cast(self.y_shared, 'int32')
 
         self._givens = {
-            self.layers[0].input_var: train_set_x[self._idx * self._batch_size: (self._idx+1)*self._batch_size],
+            self.layers[0].input_var: self.x_shared[self._idx * self._batch_size: (self._idx+1)*self._batch_size],
             self.layers[-1].target_var: self.y_converted[self._idx * self._batch_size: (self._idx+1)*self._batch_size],
         }
 
@@ -252,8 +255,9 @@ class NN():
     #     return self._fprop(x)
 
     def train_model_batch(self, X, Y, epochs=20):
-        num_batches_valid = X.get_value(borrow=True).shape[0] // self._batch_size
-        # self.x_shared.set_value(X)
+        # num_batches_valid = X.get_value(borrow=True).shape[0] // self._batch_size
+        num_batches_valid = X.shape[0] // self._batch_size
+        self.x_shared.set_value(X)
         self.y_shared.set_value(Y)
         epoch_losses = []
         for epoch in xrange(epochs):
@@ -367,7 +371,7 @@ def test_convnet():
 
 
     # test_set_x = np.asarray(test_set_x, dtype=theano.config.floatX)
-    # train_set_x = np.asarray(train_set_x, dtype=theano.config.floatX)
+    train_set_x = np.asarray(train_set_x, dtype=theano.config.floatX)
     train_set_y = np.asarray(train_set_y, dtype=theano.config.floatX)
     # train_set_y = train_set_y.reshape(train_set_y.shape[0], 1)
 
@@ -376,7 +380,7 @@ def test_convnet():
     # valid_set_y_vect = [[int(b) for b in list("{0:010b}".format(1 << num))[::-1]] for num in valid_set_y]
 
 
-    # train_set_x = train_set_x.reshape((train_set_x.shape[0], 1, 28, 28))
+    train_set_x = train_set_x.reshape((train_set_x.shape[0], 1, 28, 28))
     # test_set_x = test_set_x.reshape((test_set_x.shape[0], 1, 28, 28))
     # train_set_y = train_set_y.reshape((train_set_y.shape[0], 1))
 
@@ -486,7 +490,7 @@ def test_convnet():
                           ' ran for %.2fm' % ((end_time - start_time) / 60.))
     """
     start_time = time.clock()
-    train_losses = mlp.train_model_batch(train_set_x_shared, train_set_y, n_epochs)
+    train_losses = mlp.train_model_batch(train_set_x, train_set_y, n_epochs)
     end_time = time.clock()
     print >> sys.stderr, ('The code ran for %.2fm' % ((end_time - start_time) / 60.))
     print 'train losses'

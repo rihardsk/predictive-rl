@@ -355,8 +355,13 @@ class Input2DLayer(object):
         self.n_features = n_features
         self.width = width
         self.height = height
-        # self.input_var = T.tensor4('input')
-        self.input_var = T.matrix()
+        """
+        TODO: should allow to pass a 2D matrix and reshape it to a 4D tensor ourselves.
+        don't know how to do that though, since if we use a T.matrix() as input_var we get an
+        error at theano function compile time
+        """
+        self.input_var = T.tensor4('input')
+        # self.input_var = T.matrix()
         self.output_var = self.input_var.reshape((mb_size, n_features, width, height))
         self.scale = scale
 
