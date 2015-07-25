@@ -221,7 +221,7 @@ class NN():
                 np.zeros(self.layers[-1].get_output_shape(), dtype=theano.config.floatX)
             # )
         )
-        self.y_converted = T.cast(self.y_shared, 'int32')
+        self.y_converted = T.cast(self.y_shared, 'int32') if discrete_target else self.y_shared
 
         self._givens = {
             self.layers[0].input_var: self.x_shared[self._idx * self._batch_size: (self._idx+1)*self._batch_size],
@@ -407,7 +407,7 @@ def test_convnet():
     # nn_layers.append(layers.SoftmaxLayer(nn_layers[-1], 10, 0.1, 0, nonlinearity=layers.tanh))
     # #nn_layers.append(layers.OutputLayer(nn_layers[-1]))
 
-    mlp = NN(train_set_x_shared, train_set_y, batch_size=batch_size)
+    mlp = NN(train_set_x_shared, train_set_y, batch_size=batch_size, discrete_target=True)
     """
     ###############
     # TRAIN MODEL #
