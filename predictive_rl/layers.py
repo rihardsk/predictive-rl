@@ -1652,7 +1652,7 @@ class SoftmaxLayer(object):
         self.b.set_value(np.ones(self.n_outputs).astype(np.float32) * self.init_bias_value)
 
     def get_output_shape(self):
-        return (self.mb_size, self.n_outputs)
+        return (self.mb_size)
 
 
     def error(self):

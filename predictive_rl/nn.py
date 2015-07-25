@@ -215,7 +215,7 @@ class NN():
         #     np.zeros(self.layers[0].get_output_shape(), dtype=theano.config.floatX))
         self.y_shared = theano.shared(
             # np.asarray(
-                np.zeros(self._batch_size, dtype=theano.config.floatX)
+                np.zeros(self.layers[-1].get_output_shape(), dtype=theano.config.floatX)
             # )
         )
         self.y_converted = T.cast(self.y_shared, 'int32')
