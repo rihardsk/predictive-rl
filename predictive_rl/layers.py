@@ -1622,7 +1622,7 @@ class SoftmaxLayer(object):
         self.nonlinearity = nonlinearity
         self.mb_size = self.input_layer.mb_size
 
-        self.target_var = T.ivector() # variable for the labels TODO: figure out how to use icol and have no type confilcts
+        self.target_var = T.ivector()
         # self.target_var = theano.gradient.consider_constant(self.target_var)
         self.target_var.name = 'target_var_' + self.__class__.__name__
         input_shape = self.input_layer.get_output_shape()

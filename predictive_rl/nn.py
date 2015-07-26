@@ -114,21 +114,12 @@ class NN():
 
         self.cost = self.layers[-1].error()
         self.error_rate = self.layers[-1].error_rate()
-        # self.cost = self.layers[-1].negative_log_likelihood(y)
-
-        # grads = T.grad(cost, self.parameters)
 
         self.regularization = sum([(W_or_b ** 2).sum() for W_or_b in self.parameters])
 
         self.updates = layers.gen_updates_sgd(self.cost + self.regularization * L2_reg, self.parameters, learning_rate) # the last layer must be a layers.OutputLayer
         # self.updates = layers.gen_updates_sgd(cost, self.parameters, learning_rate) # the last layer must be a layers.OutputLayer
 
-        # self.updates = [
-        #     (param_i, param_i - learning_rate * grad_i)
-        #     for param_i, grad_i in zip(self.parameters, grads)
-        # ]
-
-        # theano.pp(self.updates)
         # self.train_model = theano.function(
         #     inputs=[self.layers[0].input_var, self.layers[-1].target_var],
         #     updates=self.updates,
@@ -137,34 +128,22 @@ class NN():
 
         self._idx = T.lscalar('idx')
         self.x_shared = theano.shared(
-            # np.asarray(
-                np.zeros(self.layers[0].get_output_shape(), dtype=theano.config.floatX)
-            # )
+            np.zeros(self.layers[0].get_output_shape(), dtype=theano.config.floatX)
         )
         self.y_shared = theano.shared(
-            # np.asarray(
-                np.zeros(self.layers[-1].get_output_shape(), dtype=theano.config.floatX)
-            # )
+            np.zeros(self.layers[-1].get_output_shape(), dtype=theano.config.floatX)
         )
         self.x_shared_validate = theano.shared(
-            # np.asarray(
-                np.zeros(self.layers[0].get_output_shape(), dtype=theano.config.floatX)
-            # )
+            np.zeros(self.layers[0].get_output_shape(), dtype=theano.config.floatX)
         )
         self.y_shared_validate = theano.shared(
-            # np.asarray(
-                np.zeros(self.layers[-1].get_output_shape(), dtype=theano.config.floatX)
-            # )
+            np.zeros(self.layers[-1].get_output_shape(), dtype=theano.config.floatX)
         )
         self.x_shared_test = theano.shared(
-            # np.asarray(
-                np.zeros(self.layers[0].get_output_shape(), dtype=theano.config.floatX)
-            # )
+            np.zeros(self.layers[0].get_output_shape(), dtype=theano.config.floatX)
         )
         self.y_shared_test = theano.shared(
-            # np.asarray(
-                np.zeros(self.layers[-1].get_output_shape(), dtype=theano.config.floatX)
-            # )
+            np.zeros(self.layers[-1].get_output_shape(), dtype=theano.config.floatX)
         )
         self.y_converted = T.cast(self.y_shared, 'int32') if discrete_target else self.y_shared
         self.y_converted_validate = T.cast(self.y_shared_validate, 'int32') if discrete_target else self.y_shared
@@ -204,21 +183,21 @@ class NN():
             outputs=self.error_rate
         )
 
-        # self._output_model_batch = theano.function(
-        #     inputs=[self._idx],
-        #     updates=self.updates,
-        #     givens=self._givens,
-        #     outputs=self.output()
-        # )
+        self._output_model_batch = theano.function(
+            inputs=[self._idx],
+            updates=self.updates,
+            givens=self._givens,
+            outputs=self.output()
+        )
 
         #self._test_model = theano.function(
         #    [self.layers[0].input_var, self.layers[-1]],
         #    self.cost
         #)
 
-    # def output(self, *args, **kwargs):
-    #     last_layer_output = self.layers[-1].output(*args, **kwargs)
-    #     return last_layer_output
+    def output(self, *args, **kwargs):
+        last_layer_output = self.layers[-1].output(*args, **kwargs)
+        return last_layer_output
 
     # def fprop(self, x):
     #     return self._fprop(x)
@@ -336,14 +315,14 @@ class NN():
                             os.path.split(__file__)[1] +
                             ' ran for %.2fm' % ((end_time - start_time) / 60.))
 
-    # def output_model_batch(self, X):
-    #     num_batches_valid = X.shape[0] // self._batch_size
-    #     self.x_shared.set_value(X)
-    #     outputs = []
-    #     for b in xrange(num_batches_valid):
-    #         batch_outputs = self._output_model_batch(b)
-    #         outputs.append(batch_outputs)
-    #     return np.concatenate(outputs)
+    def output_model_batch(self, X):
+        num_batches_valid = X.shape[0] // self._batch_size
+        self.x_shared.set_value(X)
+        outputs = []
+        for b in xrange(num_batches_valid):
+            batch_outputs = self._output_model_batch(b)
+            outputs.append(batch_outputs)
+        return np.concatenate(outputs)
 
 
 def _shared_dataset(data_xy):
