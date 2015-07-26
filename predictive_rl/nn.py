@@ -330,36 +330,16 @@ def test_convnet():
     valid_set_x, valid_set_y = valid_set
     train_set_x, train_set_y = train_set
 
-
-    # test_set_x = np.asarray(test_set_x, dtype=theano.config.floatX)
     train_set_x = np.asarray(train_set_x, dtype=theano.config.floatX)
     train_set_y = np.asarray(train_set_y, dtype=theano.config.floatX)
     valid_set_x = np.asarray(valid_set_x, dtype=theano.config.floatX)
     valid_set_y = np.asarray(valid_set_y, dtype=theano.config.floatX)
     test_set_x = np.asarray(test_set_x, dtype=theano.config.floatX)
     test_set_y = np.asarray(test_set_y, dtype=theano.config.floatX)
-    # train_set_y = train_set_y.reshape(train_set_y.shape[0], 1)
-
-    # test_set_y_vect = [[int(b) for b in list("{0:010b}".format(1 << num))[::-1]] for num in test_set_y]
-    # train_set_y_vect = np.asmatrix([[int(b) for b in list("{0:010b}".format(1 << num))[::-1]] for num in train_set_y], dtype=theano.config.floatX)
-    # valid_set_y_vect = [[int(b) for b in list("{0:010b}".format(1 << num))[::-1]] for num in valid_set_y]
-
 
     train_set_x = train_set_x.reshape((train_set_x.shape[0], 1, 28, 28))
     test_set_x = test_set_x.reshape((test_set_x.shape[0], 1, 28, 28))
     valid_set_x = valid_set_x.reshape((valid_set_x.shape[0], 1, 28, 28))
-    # train_set_y = train_set_y.reshape((train_set_y.shape[0], 1))
-
-    # compute number of minibatches for training, validation and testing
-    """
-    n_train_batches = train_set_x.get_value(borrow=True).shape[0]
-    n_valid_batches = valid_set_x.get_value(borrow=True).shape[0]
-    n_test_batches = test_set_x.get_value(borrow=True).shape[0]
-    n_train_batches /= batch_size
-    n_valid_batches /= batch_size
-    n_test_batches /= batch_size
-    """
-
 
     nn_layers = []
     nkerns = [20, 50]
