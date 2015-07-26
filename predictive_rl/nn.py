@@ -1,7 +1,6 @@
 import os
 from matplotlib._delaunay import nn_interpolate_grid
 import sys
-from theano.tensor.signal import downsample
 
 __author__ = 'rihards'
 
@@ -11,20 +10,15 @@ from theano import tensor as T
 import numpy as np
 import cPickle, gzip
 import time
-from theano.tensor.nnet import conv
 
 
 class NN():
     def __init__(self, nn_layers, L2_reg=0.0001, learning_rate=0.1, batch_size=32, discrete_target=False):
-        nkerns = [20, 50]
 
         self.layers = nn_layers
         #TODO: maybe initialize layers and set all inputs as prev outputs
 
         self._batch_size = batch_size
-
-        rng = np.random.RandomState(23455)
-
 
         # self._fprop = theano.function(
         #     [self.layers[0].input_var],
