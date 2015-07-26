@@ -355,14 +355,21 @@ class Input2DLayer(object):
         self.n_features = n_features
         self.width = width
         self.height = height
+        """
+        TODO: should allow to pass a 2D matrix and reshape it to a 4D tensor ourselves.
+        don't know how to do that though, since if we use a T.matrix() as input_var we get an
+        error at theano function compile time
+        """
         self.input_var = T.tensor4('input')
+        # self.input_var = T.matrix()
+        self.output_var = self.input_var.reshape((mb_size, n_features, width, height))
         self.scale = scale
 
     def get_output_shape(self):
         return (self.mb_size, self.n_features, self.width, self.height)
 
     def output(self, *args, **kwargs):
-        return self.input_var / self.scale
+        return self.output_var / self.scale
 
 
 
@@ -1615,8 +1622,8 @@ class SoftmaxLayer(object):
         self.nonlinearity = nonlinearity
         self.mb_size = self.input_layer.mb_size
 
-        self.target_var = T.imatrix() # variable for the labels TODO: figure out how to use icol and have no type confilcts
-        self.target_var = theano.gradient.consider_constant(self.target_var)
+        self.target_var = T.ivector()
+        # self.target_var = theano.gradient.consider_constant(self.target_var)
         self.target_var.name = 'target_var_' + self.__class__.__name__
         input_shape = self.input_layer.get_output_shape()
         self.n_inputs = int(np.prod(input_shape[1:]))
@@ -1650,7 +1657,7 @@ class SoftmaxLayer(object):
         self.b.set_value(np.ones(self.n_outputs).astype(np.float32) * self.init_bias_value)
 
     def get_output_shape(self):
-        return (self.mb_size, self.n_outputs)
+        return (self.mb_size)
 
 
     def error(self):
