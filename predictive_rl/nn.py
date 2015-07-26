@@ -372,8 +372,8 @@ def test_convnet():
 
     nn_layers.append(layers.SoftmaxLayer(nn_layers[-1], 10, 0.1, 0, nonlinearity=layers.tanh))
 
-    mlp = NN(nn_layers, batch_size=batch_size, discrete_target=True)
-    mlp.train_model_batch_patience(train_set_x, train_set_y, valid_set_x, valid_set_y, test_set_x, test_set_y)
+    mlp = NN(nn_layers,learning_rate=learning_rate, batch_size=batch_size, discrete_target=True)
+    mlp.train_model_batch_patience(train_set_x, train_set_y, valid_set_x, valid_set_y, test_set_x, test_set_y, n_epochs=n_epochs)
     # start_time = time.clock()
     # train_losses = mlp.train_model_batch(train_set_x, train_set_y, n_epochs)
     # end_time = time.clock()
