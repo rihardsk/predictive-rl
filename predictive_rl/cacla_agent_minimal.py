@@ -33,9 +33,9 @@ class cacla_agent(Agent):
         """
         # Handle command line argument:
         parser = argparse.ArgumentParser(description='Neural rl agent.')
-        parser.add_argument('--action_learning_rate', type=float, default=.1,
+        parser.add_argument('--action_learning_rate', type=float, default=.01,
                             help='Learning rate')
-        parser.add_argument('--value_learning_rate', type=float, default=.1,
+        parser.add_argument('--value_learning_rate', type=float, default=.01,
                             help='Learning rate')
         parser.add_argument('--discount', type=float, default=.95,
                             help='Discount rate')
@@ -103,8 +103,8 @@ class cacla_agent(Agent):
             handle = open(self.nn_file, 'r')
             self.network = cPickle.load(handle)
 
-        self.action_stdev = 1
-        self.gamma = 0.9 # TaskSpec.getDiscountFactor()
+        self.action_stdev = 0.1
+        self.gamma = 0.99  # TaskSpec.getDiscountFactor()
 
         self.action_ranges = np.asmatrix(self.action_ranges)
         self.observation_ranges = np.asmatrix(self.observation_ranges)
