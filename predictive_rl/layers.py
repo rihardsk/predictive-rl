@@ -328,11 +328,12 @@ class InputLayer(object):
 
 
 class FlatInputLayer(InputLayer):
-    def __init__(self, mb_size, n_features, ranges=None):
+    def __init__(self, mb_size, n_features, ranges=None, target_max_deviation=None):
         self.mb_size = mb_size
         self.n_features = n_features
         self.input_var = T.matrix('input')
         self.ranges = ranges
+        self.target_max_deviation = target_max_deviation
 
     def get_output_shape(self):
         return (self.mb_size, self.n_features)
@@ -346,7 +347,8 @@ class FlatInputLayer(InputLayer):
         else:
             minranges = self.ranges[:, 0].T
             maxranges = self.ranges[:, 1].T
-            return (self.input_var - minranges) / (maxranges - minranges) * 2 - 1
+            scale = self.target_max_deviation or 1
+            return (self.input_var - minranges) / (maxranges - minranges) * 2 * scale - scale
 
 # NRS - add scale argument
 class Input2DLayer(object):

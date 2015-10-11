@@ -114,9 +114,10 @@ class cacla_agent(Agent):
         A subclass may override this if a different sort
         of network is desired.
         """
-        layer1 = layers.FlatInputLayer(minibatch_size, input_dims, np.asarray(self.observation_ranges, dtype='float32'))
-        layer2 = layers.DenseLayer(layer1, 15, 0.1, 0, layers.sigmoid)
-        layer3 = layers.DenseLayer(layer2, output_dims, 0.1, 0, layers.sigmoid)
+        scale_factor = 2
+        layer1 = layers.FlatInputLayer(minibatch_size, input_dims, np.asarray(self.observation_ranges, dtype='float32'), scale_factor)
+        layer2 = layers.DenseLayer(layer1, 15, 0.1, 0, layers.tanh)
+        layer3 = layers.DenseLayer(layer2, output_dims, 0.1, 0, layers.tanh)
         layer4 = layers.OutputLayer(layer3)
         return nn.NN([layer1, layer2, layer3, layer4], batch_size=minibatch_size, learning_rate=self.action_learning_rate)
 
@@ -125,9 +126,10 @@ class cacla_agent(Agent):
         A subclass may override this if a different sort
         of network is desired.
         """
-        layer1 = layers.FlatInputLayer(minibatch_size, input_dims, np.asarray(self.observation_ranges, dtype='float32'))
-        layer2 = layers.DenseLayer(layer1, 15, 0.1, 0, layers.sigmoid)
-        layer3 = layers.DenseLayer(layer2, output_dims, 0.1, 0, layers.sigmoid)
+        scale_factor = 2
+        layer1 = layers.FlatInputLayer(minibatch_size, input_dims, np.asarray(self.observation_ranges, dtype='float32'), scale_factor)
+        layer2 = layers.DenseLayer(layer1, 15, 0.1, 0, layers.tanh)
+        layer3 = layers.DenseLayer(layer2, output_dims, 0.1, 0, layers.identity)
         layer4 = layers.OutputLayer(layer3)
         return nn.NN([layer1, layer2, layer3, layer4], batch_size=minibatch_size, learning_rate=self.value_learning_rate)
 
@@ -189,9 +191,14 @@ class cacla_agent(Agent):
                                 self.training_sample
         value = self.value_network.fprop(state)
         target_value = reward + np.multiply(self.gamma * self.value_network.fprop(next_state), not terminal)
+
+        # we have to apply some kind of a transformation to target_value for it to fit in the active input range
+        # of the activation function used in the nn
+        # target_value /= 4.
         self.value_network.train_model(state, target_value)
-        updated_value = self.value_network.fprop(state)
-        mask = updated_value > value
+        # updated_value = self.value_network.fprop(state)  #  we don't actually need this value.
+                                                           #  here it is interchangeable with target_value
+        mask = target_value > value
 
         if mask[0, 0]:
             return self.action_network.train_model(state, action)
@@ -235,7 +242,8 @@ class cacla_agent(Agent):
         self.last_action = copy.deepcopy(double_action)
         self.last_observation = cur_observation
 
-        return_action.doubleArray = [double_action * 2 - 1]
+        # double_action = double_action * 2 - 1
+        return_action.doubleArray = [double_action]
         return return_action
 
     def agent_end(self, reward):
