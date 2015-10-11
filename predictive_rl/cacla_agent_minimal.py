@@ -279,25 +279,27 @@ class cacla_agent(Agent):
         self.step_counter += 1
         total_time = time.time() - self.start_time
 
-        if self.testing:
-            self.total_reward += reward
-        else:
-            #self._update_learning_file()
+        if reward is not None:
+            if self.testing:
+                self.total_reward += reward
+                return
+            else:
+                #self._update_learning_file()
 
-            # Store the latest sample.
-            self.training_sample = (np.asmatrix(self.last_observation, dtype='float32'),
-                            np.asmatrix(self.last_action, dtype='float32'), np.clip(reward, -1, 1),
-                            np.asmatrix(np.zeros_like(self.last_observation, dtype='float32')),
-                            True)
+                # Store the latest sample.
+                self.training_sample = (np.asmatrix(self.last_observation, dtype='float32'),
+                                np.asmatrix(self.last_action, dtype='float32'), np.clip(reward, -1, 1),
+                                np.asmatrix(np.zeros_like(self.last_observation, dtype='float32')),
+                                True)
 
-            loss = self._do_training()
-            self.batch_counter += 1
-            if loss is not None:
-                self.loss_averages.append(loss)
+                loss = self._do_training()
+                if loss is not None:
+                    self.loss_averages.append(loss)
 
-            print "Simulated at a rate of {}/s \n Average loss: {}".format(\
-                self.batch_counter/total_time,
-                np.mean(self.loss_averages))
+        self.batch_counter += 1
+        print "Simulated at a rate of {}/s \n Average loss: {}".format(\
+            self.batch_counter/total_time,
+            np.mean(self.loss_averages))
 
     def agent_cleanup(self):
         """
@@ -314,16 +316,20 @@ class cacla_agent(Agent):
         """
 
         #WE NEED TO DO THIS BECAUSE agent_end is not called
-        # we run out of steps.
+        # we run out of steps (experiment ended the episode manually).
         if in_message.startswith("episode_end"):
-            self.agent_end(0)
+            self.agent_end(None)
 
         elif in_message.startswith("finish_epoch"):
             epoch = int(in_message.split(" ")[1])
-            net_file = open(self.exp_dir + '/network_file_' + str(epoch) + \
-                            '.pkl', 'w')
-            cPickle.dump(self.action_network, net_file, -1)
-            net_file.close()
+            action_net_file = open(self.exp_dir + '/network_action_file_' + str(epoch) +
+                                   '.pkl', 'w')
+            cPickle.dump(self.action_network, action_net_file, -1)
+            action_net_file.close()
+            value_net_file = open(self.exp_dir + '/network_value_file_' + str(epoch) +
+                                  '.pkl', 'w')
+            cPickle.dump(self.value_network, value_net_file, -1)
+            value_net_file.close()
 
         elif in_message.startswith("start_testing"):
             self.testing = True
@@ -332,8 +338,8 @@ class cacla_agent(Agent):
 
         elif in_message.startswith("finish_testing"):
             self.testing = False
-            holdout_size = 3200
-            epoch = int(in_message.split(" ")[1])
+            # holdout_size = 3200
+            # epoch = int(in_message.split(" ")[1])
 
             #if self.holdout_data is None:
             #    self.holdout_data = self.data_set.random_batch(holdout_size)[0]
