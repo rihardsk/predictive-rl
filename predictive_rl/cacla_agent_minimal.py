@@ -37,10 +37,14 @@ class cacla_agent(Agent):
                             help='Learning rate')
         parser.add_argument('--value_learning_rate', type=float, default=.01,
                             help='Learning rate')
+        parser.add_argument('--action_stdev', type=str, default=0.1,
+                            help='Action space exploration standard deviation for Gaussian distribution.')
         parser.add_argument('--exp_pref', type=str, default="",
                             help='Experiment name prefix')
-        parser.add_argument('--nn_file', type=str, default=None,
-                            help='Pickle file containing trained net.')
+        parser.add_argument('--nn_action_file', type=str, default=None,
+                            help='Pickle file containing trained action net.')
+        parser.add_argument('--nn_value_file', type=str, default=None,
+                            help='Pickle file containing trained value net.')
         # Create instance variables directy from the arguments:
         # parser.parse_known_args(namespace=self)
 
@@ -48,7 +52,9 @@ class cacla_agent(Agent):
         self.action_learning_rate = args.action_learning_rate
         self.value_learning_rate = args.value_learning_rate
         self.exp_pref = args.exp_pref
-        self.nn_file = args.nn_file
+        self.nn_action_file = args.nn_action_file
+        self.nn_value_file = args.nn_value_file
+        self.action_stdev = args.action_stdev
 
 
         # CREATE A FOLDER TO HOLD RESULTS
@@ -88,26 +94,34 @@ class cacla_agent(Agent):
         else:
             print "INVALID TASK SPEC"
 
-        self.observation_ranges = TaskSpec.getDoubleObservations() # TODO: take care of int observations
+        self.observation_ranges = TaskSpec.getDoubleObservations()  # TODO: take care of int observations
         self.observation_size = len(self.observation_ranges)
 
         self.action_ranges = TaskSpec.getDoubleActions()
         self.action_size = len(self.action_ranges)
 
         self.testing = False
-        self.batch_size = 32
         self.episode_counter = 0
         self.step_counter = 0
         self.total_reward = 0
 
-        if self.nn_file is None:
-            self.action_network = self._init_action_network(len(self.observation_ranges), len(self.action_ranges), minibatch_size=1)
-            self.value_network = self._init_value_network(len(self.observation_ranges), 1, minibatch_size=1)
+        if self.nn_action_file is None:
+            self.action_network = self._init_action_network(self.observation_size,
+                                                            self.action_size,
+                                                            minibatch_size=1)
         else:
-            handle = open(self.nn_file, 'r')
-            self.network = cPickle.load(handle)
+            handle = open(self.nn_action_file, 'r')
+            self.action_network = cPickle.load(handle)
 
-        self.action_stdev = 0.1
+        if self.nn_value_file is None:
+            self.value_network = self._init_value_network(self.observation_size,
+                                                          1,
+                                                          minibatch_size=1)
+        else:
+            handle = open(self.nn_value_file, 'r')
+            self.value_network = cPickle.load(handle)
+
+
         self.discount = TaskSpec.getDiscountFactor()
 
         self.action_ranges = np.asmatrix(self.action_ranges)
@@ -118,7 +132,7 @@ class cacla_agent(Agent):
         A subclass may override this if a different sort
         of network is desired.
         """
-        scale_factor = 2
+        scale_factor = 1
         layer1 = layers.FlatInputLayer(minibatch_size, input_dims, np.asarray(self.observation_ranges, dtype='float32'), scale_factor)
         layer2 = layers.DenseLayer(layer1, 15, 0.1, 0, layers.tanh)
         layer3 = layers.DenseLayer(layer2, output_dims, 0.1, 0, layers.identity)
