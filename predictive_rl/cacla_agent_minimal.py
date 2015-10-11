@@ -37,8 +37,6 @@ class cacla_agent(Agent):
                             help='Learning rate')
         parser.add_argument('--value_learning_rate', type=float, default=.01,
                             help='Learning rate')
-        parser.add_argument('--discount', type=float, default=.95,
-                            help='Discount rate')
         parser.add_argument('--exp_pref', type=str, default="",
                             help='Experiment name prefix')
         parser.add_argument('--nn_file', type=str, default=None,
@@ -104,7 +102,7 @@ class cacla_agent(Agent):
             self.network = cPickle.load(handle)
 
         self.action_stdev = 0.1
-        self.gamma = 0.95  # TaskSpec.getDiscountFactor()
+        self.discount = TaskSpec.getDiscountFactor()
 
         self.action_ranges = np.asmatrix(self.action_ranges)
         self.observation_ranges = np.asmatrix(self.observation_ranges)
@@ -191,7 +189,7 @@ class cacla_agent(Agent):
         state, action, reward, next_state, terminal = \
                                 self.training_sample
         value = self.value_network.fprop(state)
-        target_value = reward + np.multiply(self.gamma * self.value_network.fprop(next_state), not terminal)
+        target_value = reward + np.multiply(self.discount * self.value_network.fprop(next_state), not terminal)
 
         # we have to apply some kind of a transformation to target_value for it to fit in the active input range
         # of the activation function used in the nn
