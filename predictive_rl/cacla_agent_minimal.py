@@ -42,7 +42,13 @@ class cacla_agent(Agent):
         parser.add_argument('--nn_file', type=str, default=None,
                             help='Pickle file containing trained net.')
         # Create instance variables directy from the arguments:
-        parser.parse_known_args(namespace=self)
+        # parser.parse_known_args(namespace=self)
+
+        args = parser.parse_args()
+        self.action_learning_rate = args.action_learning_rate
+        self.value_learning_rate = args.value_learning_rate
+        self.exp_pref = args.exp_pref
+        self.nn_file = args.nn_file
 
 
         # CREATE A FOLDER TO HOLD RESULTS
