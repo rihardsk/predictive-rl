@@ -94,6 +94,7 @@ class cacla_agent(Agent):
         self.batch_size = 32
         self.episode_counter = 0
         self.step_counter = 0
+        self.total_reward = 0
 
         if self.nn_file is None:
             self.action_network = self._init_action_network(len(self.observation_ranges), len(self.action_ranges), minibatch_size=1)
@@ -150,7 +151,7 @@ class cacla_agent(Agent):
         self.loss_averages = []
 
         self.start_time = time.time()
-        #this_int_action = self.randGenerator.randint(0, self.num_actions-1)
+        # this_int_action = self.randGenerator.randint(0, self.num_actions-1)
         observation_matrix = np.asmatrix(observation.doubleArray, dtype='float32')
         actions = self.action_network.fprop(observation_matrix)
         return_action = Action()
@@ -174,8 +175,9 @@ class cacla_agent(Agent):
         double_action = self.action_network.fprop(np.asmatrix(cur_observation, dtype='float32'))
 
         # in order for the agent to learn we need some exploration
-        double_action = double_action + 0 if action_stdev is None else self.randGenerator.normal(0, action_stdev, len(double_action))
-        return np.clip(double_action, 0, 1)
+        exploration = 0 if action_stdev is None or action_stdev == 0 else self.randGenerator.normal(0, action_stdev, len(double_action))
+        double_action = double_action + exploration
+        return np.clip(double_action, self.action_ranges[0, 0], self.action_ranges[0, 1])
 
     def _do_training(self):
         """
@@ -186,7 +188,7 @@ class cacla_agent(Agent):
         state, action, reward, next_state, terminal = \
                                 self.training_sample
         value = self.value_network.fprop(state)
-        target_value = reward + np.multiply(self.gamma * self.value_network.fprop(next_state), ~terminal)
+        target_value = reward + np.multiply(self.gamma * self.value_network.fprop(next_state), not terminal)
         self.value_network.train_model(state, target_value)
         updated_value = self.value_network.fprop(state)
         mask = updated_value > value
@@ -262,8 +264,13 @@ class cacla_agent(Agent):
             # Store the latest sample.
             self.training_sample = (np.asmatrix(self.last_observation, dtype='float32'),
                             np.asmatrix(self.last_action, dtype='float32'), np.clip(reward, -1, 1),
-                            np.zeros_like(self.last_observation),
-                            False)
+                            np.asmatrix(np.zeros_like(self.last_observation, dtype='float32')),
+                            True)
+
+            loss = self._do_training()
+            self.batch_counter += 1
+            if loss is not None:
+                self.loss_averages.append(loss)
 
     def agent_cleanup(self):
         """
