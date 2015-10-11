@@ -100,6 +100,9 @@ class cacla_agent(Agent):
         self.action_ranges = TaskSpec.getDoubleActions()
         self.action_size = len(self.action_ranges)
 
+        self._open_results_file()
+        self._open_value_file
+
         self.testing = False
         self.episode_counter = 0
         self.step_counter = 0
@@ -284,8 +287,6 @@ class cacla_agent(Agent):
                 self.total_reward += reward
                 return
             else:
-                #self._update_learning_file()
-
                 # Store the latest sample.
                 self.training_sample = (np.asmatrix(self.last_observation, dtype='float32'),
                                 np.asmatrix(self.last_action, dtype='float32'), np.clip(reward, -1, 1),
@@ -295,6 +296,7 @@ class cacla_agent(Agent):
                 loss = self._do_training()
                 if loss is not None:
                     self.loss_averages.append(loss)
+                    self._update_learning_file()
 
         self.batch_counter += 1
         print "Simulated at a rate of {}/s \n Average loss: {}".format(\
@@ -308,6 +310,26 @@ class cacla_agent(Agent):
         a file name can be provided by the experiment.
         """
         pass
+
+    def _open_results_file(self):
+        print "OPENING ", self.exp_dir + '/results.csv'
+        self.results_file = open(self.exp_dir + '/results.csv', 'w', 0)
+        self.results_file.write('epoch,num_episodes,total_reward,reward_per_epoch\n')
+
+    def _open_learning_file(self):
+        self.learning_file = open(self.exp_dir + '/learning.csv', 'w', 0)
+        self.learning_file.write('mean_loss,action_learning_rate,value_learning_rate\n')
+
+    def _update_results_file(self, epoch, num_episodes):
+        out = "{},{},{},{},{}\n".format(epoch, num_episodes, self.total_reward,
+                                        self.total_reward / float(num_episodes))
+        self.results_file.write(out)
+
+    def _update_learning_file(self):
+        out = "{},{},{}\n".format(np.mean(self.loss_averages),
+                                  self.action_learning_rate,
+                                  self.value_learning_rate)
+        self.learning_file.write(out)
 
     def agent_message(self, in_message):
         """
@@ -339,7 +361,7 @@ class cacla_agent(Agent):
         elif in_message.startswith("finish_testing"):
             self.testing = False
             # holdout_size = 3200
-            # epoch = int(in_message.split(" ")[1])
+            epoch = int(in_message.split(" ")[1])
 
             #if self.holdout_data is None:
             #    self.holdout_data = self.data_set.random_batch(holdout_size)[0]
@@ -349,8 +371,7 @@ class cacla_agent(Agent):
             #     holdout_sum += np.mean(
             #         self.network.q_vals(self.holdout_data[i, ...]))
             #
-            # self._update_results_file(epoch, self.episode_counter,
-            #                           holdout_sum / holdout_size)
+            self._update_results_file(epoch, self.episode_counter)
         else:
             return "I don't know how to respond to your message"
 
