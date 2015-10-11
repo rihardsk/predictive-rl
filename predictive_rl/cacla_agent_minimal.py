@@ -60,8 +60,7 @@ class cacla_agent(Agent):
         # CREATE A FOLDER TO HOLD RESULTS
         time_str = time.strftime("_%m-%d-%H-%M_", time.gmtime())
         self.exp_dir = "experiments_minimal/" + self.exp_pref + time_str + \
-                        "a-{}_v-{}".format(self.action_learning_rate, self.value_learning_rate).replace(".", "p") + \
-                        "_" + "{}".format(self.discount).replace(".", "p")
+                       "a-{}_v-{}".format(self.action_learning_rate, self.value_learning_rate).replace(".", "p")
 
         try:
             os.stat(self.exp_dir)
