@@ -117,7 +117,7 @@ class cacla_agent(Agent):
         scale_factor = 2
         layer1 = layers.FlatInputLayer(minibatch_size, input_dims, np.asarray(self.observation_ranges, dtype='float32'), scale_factor)
         layer2 = layers.DenseLayer(layer1, 15, 0.1, 0, layers.tanh)
-        layer3 = layers.DenseLayer(layer2, output_dims, 0.1, 0, layers.tanh)
+        layer3 = layers.DenseLayer(layer2, output_dims, 0.1, 0, layers.identity)
         layer4 = layers.OutputLayer(layer3)
         return nn.NN([layer1, layer2, layer3, layer4], batch_size=minibatch_size, learning_rate=self.action_learning_rate)
 
