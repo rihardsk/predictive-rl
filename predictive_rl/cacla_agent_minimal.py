@@ -100,7 +100,7 @@ class cacla_agent(Agent):
         self.action_size = len(self.action_ranges)
 
         self._open_results_file()
-        self._open_value_file
+        self._open_learning_file()
 
         self.testing = False
         self.episode_counter = 0
