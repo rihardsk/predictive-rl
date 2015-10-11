@@ -240,6 +240,12 @@ class NN():
             outputs.append(batch_outputs)
         return np.concatenate(outputs)
 
+    def fprop(self, X):
+        return self.output_model_batch(X)
+
+    def train_model(self, X, Y):
+        return self.train_model_batch(X, Y, 1)
+
 
 def _shared_dataset(data_xy):
     """ Function that loads the dataset into shared variables
