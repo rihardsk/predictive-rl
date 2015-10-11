@@ -9,9 +9,9 @@ Antonoglou, Daan Wierstra, Martin Riedmiller
 
 (Based on the sample_experiment.py from the Rl-glue python codec examples.)
 
-usage: rl_glue_ale_experiment.py [-h] [--num_epochs NUM_EPOCHS]
-                                 [--epoch_length EPOCH_LENGTH]
-                                 [--test_length TEST_LENGTH]
+usage: experiment.py [-h] [--num_epochs NUM_EPOCHS]
+                          [--epoch_length EPOCH_LENGTH]
+                          [--test_length TEST_LENGTH]
 
 Author: Nathan Sprague
 
