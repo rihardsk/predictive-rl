@@ -129,10 +129,10 @@ class NN():
             for b in xrange(num_batches_valid):
                 loss = self._train_model_batch(b)
                 losses.append(loss)
-                print >> sys.stderr, ('\tEpoch %i\tBatch %i/%i\tLoss %f' % (epoch, b, num_batches_valid, loss))
+                # print >> sys.stderr, ('\tEpoch %i\tBatch %i/%i\tLoss %f' % (epoch, b, num_batches_valid, loss))
             #mean_train_loss = np.sqrt(np.mean(losses))
             mean_train_loss = np.mean(losses)
-            print >> sys.stderr, ('Epoch %i\tAverage loss %f' % (epoch, mean_train_loss))
+            # print >> sys.stderr, ('Epoch %i\tAverage loss %f' % (epoch, mean_train_loss))
             epoch_losses.append(mean_train_loss)
         return epoch_losses
 

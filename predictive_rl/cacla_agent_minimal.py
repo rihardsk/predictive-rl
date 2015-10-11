@@ -104,7 +104,7 @@ class cacla_agent(Agent):
             self.network = cPickle.load(handle)
 
         self.action_stdev = 0.1
-        self.gamma = 0.99  # TaskSpec.getDiscountFactor()
+        self.gamma = 0.95  # TaskSpec.getDiscountFactor()
 
         self.action_ranges = np.asmatrix(self.action_ranges)
         self.observation_ranges = np.asmatrix(self.observation_ranges)
@@ -264,10 +264,6 @@ class cacla_agent(Agent):
         if self.testing:
             self.total_reward += reward
         else:
-            print "Simulated at a rate of {}/s \n Average loss: {}".format(\
-                self.batch_counter/total_time,
-                np.mean(self.loss_averages))
-
             #self._update_learning_file()
 
             # Store the latest sample.
@@ -280,6 +276,10 @@ class cacla_agent(Agent):
             self.batch_counter += 1
             if loss is not None:
                 self.loss_averages.append(loss)
+
+            print "Simulated at a rate of {}/s \n Average loss: {}".format(\
+                self.batch_counter/total_time,
+                np.mean(self.loss_averages))
 
     def agent_cleanup(self):
         """
