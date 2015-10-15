@@ -102,6 +102,7 @@ def main():
     RLGlue.RL_agent_message("set_dir " + experiment_dir)
 
     for epoch in range(1, args.num_epochs + 1):
+        RLGlue.RL_agent_message("start_epoch " + str(epoch))
         run_epoch(epoch, args.epoch_length, "training")
         RLGlue.RL_agent_message("finish_epoch " + str(epoch))
 
