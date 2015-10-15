@@ -39,8 +39,8 @@ class cacla_agent(Agent):
                             help='Learning rate')
         parser.add_argument('--action_stdev', type=str, default=0.1,
                             help='Action space exploration standard deviation for Gaussian distribution.')
-        parser.add_argument('--exp_pref', type=str, default="",
-                            help='Experiment name prefix')
+        parser.add_argument('--dir', type=str, default="experiments_minimal",
+                            help='Directory to save results')
         parser.add_argument('--nn_action_file', type=str, default=None,
                             help='Pickle file containing trained action net.')
         parser.add_argument('--nn_value_file', type=str, default=None,
@@ -51,22 +51,18 @@ class cacla_agent(Agent):
         args = parser.parse_args()
         self.action_learning_rate = args.action_learning_rate
         self.value_learning_rate = args.value_learning_rate
-        self.exp_pref = args.exp_pref
+        self.exp_dir = args.dir
         self.nn_action_file = args.nn_action_file
         self.nn_value_file = args.nn_value_file
         self.action_stdev = args.action_stdev
 
 
         # CREATE A FOLDER TO HOLD RESULTS
-        time_str = time.strftime("_%m-%d-%H-%M_", time.gmtime())
-        self.exp_dir = "experiments_minimal/" + self.exp_pref + time_str + \
-                       "a-{}_v-{}".format(self.action_learning_rate, self.value_learning_rate).replace(".", "p")
+        time_str = time.strftime("%m-%d-%H-%M", time.gmtime())
+        self.exp_dir = os.path.join(self.exp_dir,
+                       "{}_a-{}_v-{}".format(time_str, self.action_learning_rate, self.value_learning_rate).replace(".", "p"))
 
-        try:
-            os.stat(self.exp_dir)
-        except:
-            os.makedirs(self.exp_dir)
-        return
+        self.learning_file = None
 
     def agent_init(self, taskSpecification):
         """
@@ -98,9 +94,6 @@ class cacla_agent(Agent):
 
         self.action_ranges = TaskSpec.getDoubleActions()
         self.action_size = len(self.action_ranges)
-
-        self._open_results_file()
-        self._open_learning_file()
 
         self.testing = False
         self.episode_counter = 0
@@ -310,21 +303,28 @@ class cacla_agent(Agent):
         """
         pass
 
-    def _open_results_file(self):
-        print "OPENING ", self.exp_dir + '/results.csv'
-        self.results_file = open(self.exp_dir + '/results.csv', 'w', 0)
-        self.results_file.write('epoch,num_episodes,total_reward,reward_per_epoch\n')
+    # def _open_results_file(self):
+    #     print "OPENING ", self.exp_dir + '/results.csv'
+    #     self.results_file = open(self.exp_dir + '/results.csv', 'w', 0)
+    #     self.results_file.write('epoch,num_episodes,total_reward,reward_per_epoch\n')
 
     def _open_learning_file(self):
+        try:
+            os.stat(self.exp_dir)
+        except:
+            os.makedirs(self.exp_dir)
+
         self.learning_file = open(self.exp_dir + '/learning.csv', 'w', 0)
         self.learning_file.write('mean_loss,action_learning_rate,value_learning_rate\n')
 
-    def _update_results_file(self, epoch, num_episodes):
-        out = "{},{},{},{},{}\n".format(epoch, num_episodes, self.total_reward,
-                                        self.total_reward / float(num_episodes))
-        self.results_file.write(out)
+    # def _update_results_file(self, epoch, num_episodes):
+    #     out = "{},{},{},{}\n".format(epoch, num_episodes, self.total_reward,
+    #                                  self.total_reward / float(num_episodes))
+    #     self.results_file.write(out)
 
     def _update_learning_file(self):
+        if self.learning_file is None:
+            self._open_learning_file()
         out = "{},{},{}\n".format(np.mean(self.loss_averages),
                                   self.action_learning_rate,
                                   self.value_learning_rate)
@@ -335,13 +335,14 @@ class cacla_agent(Agent):
         The experiment will cause this method to be called.  Used
         to save data to the indicated file.
         """
+        params = in_message.split(" ")
 
         #WE NEED TO DO THIS BECAUSE agent_end is not called
         # we run out of steps (experiment ended the episode manually).
-        if in_message.startswith("episode_end"):
+        if params[0] == "episode_end":
             self.agent_end(None)
 
-        elif in_message.startswith("finish_epoch"):
+        elif params[0] == "finish_epoch":
             epoch = int(in_message.split(" ")[1])
             action_net_file = open(self.exp_dir + '/network_action_file_' + str(epoch) +
                                    '.pkl', 'w')
@@ -352,25 +353,16 @@ class cacla_agent(Agent):
             cPickle.dump(self.value_network, value_net_file, -1)
             value_net_file.close()
 
-        elif in_message.startswith("start_testing"):
+        elif params[0] == "start_testing":
             self.testing = True
             self.total_reward = 0
             self.episode_counter = 0
 
-        elif in_message.startswith("finish_testing"):
+        elif params[0] == "finish_testing":
             self.testing = False
-            # holdout_size = 3200
-            epoch = int(in_message.split(" ")[1])
 
-            #if self.holdout_data is None:
-            #    self.holdout_data = self.data_set.random_batch(holdout_size)[0]
-
-            holdout_sum = 0
-            # for i in range(holdout_size):
-            #     holdout_sum += np.mean(
-            #         self.network.q_vals(self.holdout_data[i, ...]))
-            #
-            self._update_results_file(epoch, self.episode_counter)
+        elif params[0] == "set_dir":
+            self.exp_dir = params[1]
         else:
             return "I don't know how to respond to your message"
 
