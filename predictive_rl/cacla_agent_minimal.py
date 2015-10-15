@@ -198,9 +198,9 @@ class cacla_agent(Agent):
 
         # in order for the agent to learn we need some exploration
         gaussian = 0 if action_stdev is None or action_stdev == 0 else self.randGenerator.normal(0, action_stdev, len(double_action))
-        exploration = gaussian * double_action
+        exploration = gaussian * (self.action_ranges[:, 1] - self.action_ranges[:, 0])
         double_action += exploration
-        return np.clip(double_action, self.action_ranges[0, 0], self.action_ranges[0, 1])
+        return np.clip(double_action, self.action_ranges[:, 0], self.action_ranges[:, 1])
 
     def _do_training(self):
         """
