@@ -20,9 +20,10 @@ import rlglue.RLGlue as RLGlue
 import argparse
 import os
 import time
+import numpy as np
 
 
-def run_epoch(epoch, num_steps, prefix):
+def run_epoch(epoch, num_steps, prefix, collect_reward=False):
     """ Run one 'epoch' of training or testing, where an epoch is defined
     by the number of steps executed.  Prints a progress report after
     every trial
@@ -33,7 +34,7 @@ def run_epoch(epoch, num_steps, prefix):
 
     """
     steps_left = num_steps
-    if prefix == "training":
+    if prefix == "training" or not collect_reward:
         while steps_left > 0:
             print prefix + " epoch: ", epoch, "steps_left: ", steps_left
             terminal = RLGlue.RL_episode(steps_left)
@@ -86,6 +87,9 @@ def main():
                         help='Directory to save results')
     parser.add_argument('--agent_suffix', type=str, default='',
                         help='Agent specific suffix to append to the results dir name')
+    parser.add_argument('--collect_rewards', type=bool, default=False,
+                        help='If set to true, testing episode mean rewards will be saved to a file. \
+                              In general this leads to testing epochs being longer than usual.')
 
     args = parser.parse_args()
 
@@ -103,14 +107,23 @@ def main():
 
     for epoch in range(1, args.num_epochs + 1):
         RLGlue.RL_agent_message("start_epoch " + str(epoch))
+        # curtime = time.time()
         run_epoch(epoch, args.epoch_length, "training")
+        # duration = time.time() - curtime
+        # print "training epoch " + str(epoch) + " " + str(duration)
         RLGlue.RL_agent_message("finish_epoch " + str(epoch))
 
         if args.test_length > 0:
             RLGlue.RL_agent_message("start_testing")
-            total_reward, num_episodes = run_epoch(epoch, args.test_length, "testing")
+            # curtime = time.time()
+            if args.collect_rewards:
+                total_reward, num_episodes = run_epoch(epoch, args.test_length, "testing", True)
+                # TODO save the rewards here
+            else:
+                run_epoch(epoch, args.test_length, "testing")
+            # duration = time.time() - curtime
+            # print "testing epoch " + str(epoch) + " " + str(duration)
             RLGlue.RL_agent_message("finish_testing " + str(epoch))
-
 
 if __name__ == "__main__":
     main()
