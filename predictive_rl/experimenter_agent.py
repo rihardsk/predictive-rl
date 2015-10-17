@@ -11,7 +11,7 @@ import os
 import numpy as np
 
 
-class ExperimenterAgent(Agent):
+class ExperimenterAgent(object, Agent):
     __metaclass__ = ABCMeta
 
     def __init__(self):
@@ -32,16 +32,19 @@ class ExperimenterAgent(Agent):
         pass
 
     def agent_step(self, reward, observation):
-        self.step_counter += 1
+        # self.step_counter += 1
         if self.testing:
-            action = self.step_test(reward, observation)
+            action = self.exp_step(reward, observation, self.testing)
         else:
-            action, loss = self.step_train(reward, observation)
-            self.epoch_losses.append(loss)
+            action, loss = self.exp_step(reward, observation, self.testing)
+            if loss is not None:
+                self.epoch_losses.append(loss)
         return action
 
     def agent_end(self, reward):
-        pass
+        loss = self.exp_end(reward, self.testing)
+        if self.testing and loss is not None:
+            self.epoch_losses.append(loss)
 
     def agent_cleanup(self):
         pass
@@ -98,11 +101,11 @@ class ExperimenterAgent(Agent):
         pass
 
     @abstractmethod
-    def step_train(self, reward, observation):
+    def exp_step(self, reward, observation, is_testing):
         pass
 
     @abstractmethod
-    def step_test(self, reward, observation):
+    def exp_end(self, reward, is_testing):
         pass
 
 

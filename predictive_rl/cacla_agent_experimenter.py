@@ -20,9 +20,10 @@ import numpy as np
 import data_set
 import argparse
 import os
+from experimenter_agent import ExperimenterAgent
 
 
-class cacla_agent(Agent):
+class CaclaAgentExperimenter(ExperimenterAgent):
     randGenerator = np.random
 
     def __init__(self):
@@ -31,6 +32,8 @@ class cacla_agent(Agent):
         instead of agent_init to make it possible to use --help from
         the command line without starting an experiment.
         """
+        super(CaclaAgentExperimenter, self).__init__()
+
         # Handle command line argument:
         parser = argparse.ArgumentParser(description='Neural rl agent.')
         parser.add_argument('--action_learning_rate', type=float, default=.01,
@@ -55,14 +58,6 @@ class cacla_agent(Agent):
         self.nn_action_file = args.nn_action_file
         self.nn_value_file = args.nn_value_file
         self.action_stdev = args.action_stdev
-
-
-        # CREATE A FOLDER TO HOLD RESULTS
-        time_str = time.strftime("%m-%d-%H-%M", time.gmtime())
-        self.exp_dir = os.path.join(self.exp_dir,
-                       "{}_a-{}_v-{}".format(time_str, self.action_learning_rate, self.value_learning_rate).replace(".", "p"))
-
-        self.learning_file = None
 
     def agent_init(self, taskSpecification):
         """
@@ -94,11 +89,6 @@ class cacla_agent(Agent):
 
         self.action_ranges = TaskSpec.getDoubleActions()
         self.action_size = len(self.action_ranges)
-
-        self.testing = False
-        self.episode_counter = 0
-        self.step_counter = 0
-        self.total_reward = 0
 
         if self.nn_action_file is None:
             self.action_network = self._init_action_network(self.observation_size,
@@ -159,13 +149,6 @@ class cacla_agent(Agent):
            An action of type rlglue.types.Action
         """
 
-        self.step_counter = 0
-        self.batch_counter = 0
-
-        # We report the mean loss for every epoch.
-        self.loss_averages = []
-
-        self.start_time = time.time()
         # this_int_action = self.randGenerator.randint(0, self.num_actions-1)
         observation_matrix = np.asmatrix(observation.doubleArray, dtype='float32')
         actions = self.action_network.fprop(observation_matrix)
@@ -201,17 +184,10 @@ class cacla_agent(Agent):
         May be overridden if a subclass needs to train the network
         differently.
         """
-        state, action, reward, next_state, terminal = \
-                                self.training_sample
+        state, action, reward, next_state, terminal = self.training_sample
         value = self.value_network.fprop(state)
         target_value = reward + np.multiply(self.discount * self.value_network.fprop(next_state), not terminal)
 
-        # we have to apply some kind of a transformation to target_value for it to fit in the active input range
-        # of the activation function used in the nn
-        # target_value /= 4.
-        self.value_network.train_model(state, target_value)
-        # updated_value = self.value_network.fprop(state)  #  we don't actually need this value.
-                                                           #  here it is interchangeable with target_value
         mask = target_value > value
 
         if mask[0, 0]:
@@ -219,48 +195,20 @@ class cacla_agent(Agent):
         else:
             return None
 
-    def agent_step(self, reward, observation):
-        """
-        This method is called each time step.
-
-        Arguments:
-           reward      - Real valued reward.
-           observation - An observation of type rlglue.types.Observation
-
-        Returns:
-           An action of type rlglue.types.Action
-
-        """
-
-        self.step_counter += 1
+    def exp_step(self, reward, observation, is_testing):
         return_action = Action()
         cur_observation = observation.doubleArray
-
-        #TESTING---------------------------
-        if self.testing:
-            self.total_reward += reward
-            double_action = self._choose_action(cur_observation, np.clip(reward, -1, 1))
-            # if self.pause > 0:
-            #     time.sleep(self.pause)
-
-        #NOT TESTING---------------------------
-        else:
-            double_action = self._choose_action(cur_observation,
-                                             np.clip(reward, -1, 1), self.action_stdev)
-
+        double_action = self._choose_action(cur_observation, np.clip(reward, -1, 1), self.action_stdev)
+        loss = None
+        if is_testing:
             loss = self._do_training()
-            self.batch_counter += 1
-            if loss is not None:
-                self.loss_averages.append(loss)
-
         self.last_action = copy.deepcopy(double_action)
         self.last_observation = cur_observation
-
-        # double_action = double_action * 2 - 1
         return_action.doubleArray = [double_action]
-        return return_action
+        return return_action, loss
 
-    def agent_end(self, reward):
+
+    def exp_end(self, reward, is_testing):
         """
         This function is called once at the end of an episode.
 
@@ -270,15 +218,9 @@ class cacla_agent(Agent):
         Returns:
             None
         """
-        self.episode_counter += 1
-        self.step_counter += 1
-        total_time = time.time() - self.start_time
 
         if reward is not None:
-            if self.testing:
-                self.total_reward += reward
-                return
-            else:
+            if not is_testing:
                 # Store the latest sample.
                 self.training_sample = (np.asmatrix(self.last_observation, dtype='float32'),
                                 np.asmatrix(self.last_action, dtype='float32'), np.clip(reward, -1, 1),
@@ -286,14 +228,7 @@ class cacla_agent(Agent):
                                 True)
 
                 loss = self._do_training()
-                if loss is not None:
-                    self.loss_averages.append(loss)
-                    self._update_learning_file()
-
-        self.batch_counter += 1
-        print "Simulated at a rate of {}/s \n Average loss: {}".format(\
-            self.batch_counter/total_time,
-            np.mean(self.loss_averages))
+                return loss
 
     def agent_cleanup(self):
         """
@@ -302,11 +237,6 @@ class cacla_agent(Agent):
         a file name can be provided by the experiment.
         """
         pass
-
-    # def _open_results_file(self):
-    #     print "OPENING ", self.exp_dir + '/results.csv'
-    #     self.results_file = open(self.exp_dir + '/results.csv', 'w', 0)
-    #     self.results_file.write('epoch,num_episodes,total_reward,reward_per_epoch\n')
 
     def _open_learning_file(self):
         try:
@@ -317,57 +247,19 @@ class cacla_agent(Agent):
         self.learning_file = open(self.exp_dir + '/learning.csv', 'w', 0)
         self.learning_file.write('mean_loss,action_learning_rate,value_learning_rate\n')
 
-    # def _update_results_file(self, epoch, num_episodes):
-    #     out = "{},{},{},{}\n".format(epoch, num_episodes, self.total_reward,
-    #                                  self.total_reward / float(num_episodes))
-    #     self.results_file.write(out)
-
-    def _update_learning_file(self):
-        if self.learning_file is None:
-            self._open_learning_file()
-        out = "{},{},{}\n".format(np.mean(self.loss_averages),
-                                  self.action_learning_rate,
-                                  self.value_learning_rate)
-        self.learning_file.write(out)
-
-    def agent_message(self, in_message):
-        """
-        The experiment will cause this method to be called.  Used
-        to save data to the indicated file.
-        """
-        params = in_message.split(" ")
-
-        #WE NEED TO DO THIS BECAUSE agent_end is not called
-        # we run out of steps (experiment ended the episode manually).
-        if params[0] == "episode_end":
-            self.agent_end(None)
-
-        elif params[0] == "finish_epoch":
-            epoch = int(in_message.split(" ")[1])
-            action_net_file = open(self.exp_dir + '/network_action_file_' + str(epoch) +
-                                   '.pkl', 'w')
+    def save_agent(self, epoch):
+            action_net_file = open(os.path.join(self.exp_dir, 'network_action_file_' + str(epoch) +
+                                   '.pkl'), 'w')
             cPickle.dump(self.action_network, action_net_file, -1)
             action_net_file.close()
-            value_net_file = open(self.exp_dir + '/network_value_file_' + str(epoch) +
-                                  '.pkl', 'w')
+            value_net_file = open(os.path.join(self.exp_dir + 'network_value_file_' + str(epoch) +
+                                  '.pkl'), 'w')
             cPickle.dump(self.value_network, value_net_file, -1)
             value_net_file.close()
 
-        elif params[0] == "start_testing":
-            self.testing = True
-            self.total_reward = 0
-            self.episode_counter = 0
-
-        elif params[0] == "finish_testing":
-            self.testing = False
-
-        elif params[0] == "set_dir":
-            self.exp_dir = params[1]
-        else:
-            return "I don't know how to respond to your message"
 
 def main():
-    AgentLoader.loadAgent(cacla_agent())
+    AgentLoader.loadAgent(CaclaAgentExperimenter())
 
 
 if __name__ == "__main__":
