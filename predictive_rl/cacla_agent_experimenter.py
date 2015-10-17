@@ -200,12 +200,12 @@ class CaclaAgentExperimenter(ExperimenterAgent):
         cur_observation = observation.doubleArray
         double_action = self._choose_action(cur_observation, np.clip(reward, -1, 1), self.action_stdev)
         loss = None
-        if is_testing:
+        if not is_testing:
             loss = self._do_training()
         self.last_action = copy.deepcopy(double_action)
         self.last_observation = cur_observation
         return_action.doubleArray = [double_action]
-        return return_action, loss
+        return return_action if is_testing else (return_action, loss)
 
 
     def exp_end(self, reward, is_testing):
