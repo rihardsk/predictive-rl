@@ -136,18 +136,28 @@ class ExperimenterAgent(object, Agent):
         pass
 
     @staticmethod
-    def plot_results(results_file):
+    def plot_results(file):
         # Modify this to do some smoothing...
         kernel = np.array([1.] * 1)
         kernel = kernel / np.sum(kernel)
 
-        results = np.loadtxt(open(results_file, "rb"), delimiter=",", skiprows=1)
+        results = np.loadtxt(open(file, "rb"), delimiter=",", skiprows=1)
         plt.subplot(1, 2, 1)
         plt.plot(results[:, 0], np.convolve(results[:, 2], kernel, mode='same'), '-*')
         #plt.ylim([0, 250])
         plt.subplot(1, 2, 2)
         plt.plot(results[:, 0], results[:, 3], '--')
         #plt.ylim([0, 4])
+        plt.show()\
+
+    @staticmethod
+    def plot_learning(file):
+        # Modify this to do some smoothing...
+        kernel = np.array([1.] * 1)
+        kernel = kernel / np.sum(kernel)
+
+        results = np.loadtxt(open(file, "rb"), delimiter=",", skiprows=1)
+        plt.plot(results[:, 0], np.convolve(results[:, 1], kernel, mode='same'), '-*')
         plt.show()
 
 
