@@ -246,7 +246,7 @@ class CaclaAgentExperimenter(ExperimenterAgent):
                                    '.pkl'), 'w')
             cPickle.dump(self.action_network, action_net_file, -1)
             action_net_file.close()
-            value_net_file = open(os.path.join(self.exp_dir + 'network_value_file_' + str(epoch) +
+            value_net_file = open(os.path.join(self.exp_dir, 'network_value_file_' + str(epoch) +
                                   '.pkl'), 'w')
             cPickle.dump(self.value_network, value_net_file, -1)
             value_net_file.close()
