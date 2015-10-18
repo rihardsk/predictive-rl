@@ -9,6 +9,7 @@ from rlglue.utils import TaskSpecVRLGLUE3
 from abc import ABCMeta, abstractmethod
 import os
 import numpy as np
+import matplotlib.pyplot as plt
 
 
 class ExperimenterAgent(object, Agent):
@@ -20,10 +21,13 @@ class ExperimenterAgent(object, Agent):
         # self.episode_counter = 0
         # self.step_counter = 0
         self.epoch_losses = []
-        # self.epoch_rewards = []
+        self.epoch_rewards = []
         self.exp_dir = ""
         self.learning_file = None
+        self.results_file = None
         self.learning_file_header = "epoch,loss"
+        self.results_file_header = "epoch,episodes,total_reward,mean_reward"
+        self.collect_rewards = True
 
     def agent_init(self, taskSpecification):
         pass
@@ -34,6 +38,8 @@ class ExperimenterAgent(object, Agent):
     def agent_step(self, reward, observation):
         # self.step_counter += 1
         if self.testing:
+            if self.collect_rewards:
+                self.epoch_rewards.append(reward)
             action = self.exp_step(reward, observation, self.testing)
         else:
             action, loss = self.exp_step(reward, observation, self.testing)
@@ -43,8 +49,10 @@ class ExperimenterAgent(object, Agent):
 
     def agent_end(self, reward):
         loss = self.exp_end(reward, self.testing)
-        if self.testing and loss is not None:
+        if not self.testing and loss is not None:
             self.epoch_losses.append(loss)
+        elif self.testing and reward is not None:
+            self.epoch_rewards.append(reward)
 
     def agent_cleanup(self):
         pass
@@ -68,6 +76,7 @@ class ExperimenterAgent(object, Agent):
             epoch = int(in_message.split(" ")[1])
             self.save_agent(epoch)
             self.save_losses(epoch, self.epoch_losses)
+            self.epoch_losses = []
 
         elif params[0] == "start_testing":
             self.testing = True
@@ -75,25 +84,43 @@ class ExperimenterAgent(object, Agent):
             # self.episode_counter = 0
 
         elif params[0] == "finish_testing":
+            epoch = int(in_message.split(" ")[1])
             self.testing = False
+            if self.collect_rewards:
+                self.save_results(epoch, self.epoch_rewards)
+                self.epoch_rewards = []
 
         elif params[0] == "set_dir":
             self.exp_dir = params[1]
         else:
             return "I don't know how to respond to your message"
 
-    def open_learning_file(self, filename):
+    def open_learning_file(self, dir_name):
         try:
-            os.stat(filename)
+            os.stat(dir_name)
         except:
-            os.makedirs(filename)
-        self.learning_file = open(filename + '/learning.csv', 'w', 0)
+            os.makedirs(dir_name)
+        self.learning_file = open(os.path.join(dir_name, 'learning.csv'), 'w', 0)
         self.learning_file.write(self.learning_file_header + '\n')
+
+    def open_results_file(self, dir_name):
+        try:
+            os.stat(dir_name)
+        except:
+            os.makedirs(dir_name)
+        self.results_file = open(os.path.join(dir_name, 'results.csv'), 'w', 0)
+        self.results_file.write(self.results_file_header + '\n')
 
     def save_losses(self, epoch, losses):
         if self.learning_file is None:
             self.open_learning_file(self.exp_dir)
         out = "{},{}\n".format(epoch, np.mean(losses))
+        self.learning_file.write(out)
+
+    def save_results(self, epoch, rewards):
+        if self.results_file is None:
+            self.open_results_file(self.exp_dir)
+        out = "{},{},{},{}\n".format(epoch, len(rewards), np.sum(rewards), np.mean(rewards))
         self.learning_file.write(out)
 
     @abstractmethod
@@ -107,5 +134,20 @@ class ExperimenterAgent(object, Agent):
     @abstractmethod
     def exp_end(self, reward, is_testing):
         pass
+
+    @staticmethod
+    def plot_results(results_file):
+        # Modify this to do some smoothing...
+        kernel = np.array([1.] * 1)
+        kernel = kernel / np.sum(kernel)
+
+        results = np.loadtxt(open(results_file, "rb"), delimiter=",", skiprows=1)
+        plt.subplot(1, 2, 1)
+        plt.plot(results[:, 0], np.convolve(results[:, 3], kernel, mode='same'), '-*')
+        #plt.ylim([0, 250])
+        plt.subplot(1, 2, 2)
+        plt.plot(results[:, 0], results[:, 4], '--')
+        #plt.ylim([0, 4])
+        plt.show()
 
 

@@ -48,6 +48,8 @@ class CaclaAgentExperimenter(ExperimenterAgent):
                             help='Pickle file containing trained action net.')
         parser.add_argument('--nn_value_file', type=str, default=None,
                             help='Pickle file containing trained value net.')
+        parser.add_argument('--collect_rewards', type=bool, default=True,
+                            help='If set to true, testing episode mean rewards will be saved to a file.')
         # Create instance variables directy from the arguments:
         # parser.parse_known_args(namespace=self)
 
@@ -58,6 +60,7 @@ class CaclaAgentExperimenter(ExperimenterAgent):
         self.nn_action_file = args.nn_action_file
         self.nn_value_file = args.nn_value_file
         self.action_stdev = args.action_stdev
+        self.collect_rewards = args.collect_rewards
 
     def agent_init(self, taskSpecification):
         """
