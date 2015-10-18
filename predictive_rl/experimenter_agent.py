@@ -121,7 +121,7 @@ class ExperimenterAgent(object, Agent):
         if self.results_file is None:
             self.open_results_file(self.exp_dir)
         out = "{},{},{},{}\n".format(epoch, len(rewards), np.sum(rewards), np.mean(rewards))
-        self.learning_file.write(out)
+        self.results_file.write(out)
 
     @abstractmethod
     def save_agent(self, epoch):
@@ -143,10 +143,10 @@ class ExperimenterAgent(object, Agent):
 
         results = np.loadtxt(open(results_file, "rb"), delimiter=",", skiprows=1)
         plt.subplot(1, 2, 1)
-        plt.plot(results[:, 0], np.convolve(results[:, 3], kernel, mode='same'), '-*')
+        plt.plot(results[:, 0], np.convolve(results[:, 2], kernel, mode='same'), '-*')
         #plt.ylim([0, 250])
         plt.subplot(1, 2, 2)
-        plt.plot(results[:, 0], results[:, 4], '--')
+        plt.plot(results[:, 0], results[:, 3], '--')
         #plt.ylim([0, 4])
         plt.show()
 

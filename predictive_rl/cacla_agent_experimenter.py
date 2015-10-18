@@ -241,15 +241,6 @@ class CaclaAgentExperimenter(ExperimenterAgent):
         """
         pass
 
-    def _open_learning_file(self):
-        try:
-            os.stat(self.exp_dir)
-        except:
-            os.makedirs(self.exp_dir)
-
-        self.learning_file = open(self.exp_dir + '/learning.csv', 'w', 0)
-        self.learning_file.write('mean_loss,action_learning_rate,value_learning_rate\n')
-
     def save_agent(self, epoch):
             action_net_file = open(os.path.join(self.exp_dir, 'network_action_file_' + str(epoch) +
                                    '.pkl'), 'w')
