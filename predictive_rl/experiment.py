@@ -118,7 +118,7 @@ def main():
             # curtime = time.time()
             if args.collect_rewards:
                 total_reward, num_episodes = run_epoch(epoch, args.test_length, "testing", True)
-                # TODO save the rewards here
+                update_results_file(epoch, total_reward, num_episodes, results_file)
             else:
                 run_epoch(epoch, args.test_length, "testing")
             # duration = time.time() - curtime
