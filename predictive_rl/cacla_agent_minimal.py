@@ -239,7 +239,7 @@ class cacla_agent(Agent):
         #TESTING---------------------------
         if self.testing:
             self.total_reward += reward
-            double_action = self._choose_action(cur_observation, np.clip(reward, -1, 1))
+            double_action = self._choose_action(cur_observation, np.clip(reward, -1, 1), self.action_stdev)
             # if self.pause > 0:
             #     time.sleep(self.pause)
 
