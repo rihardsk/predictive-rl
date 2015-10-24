@@ -63,6 +63,7 @@ class cacla_agent(Agent):
                        "{}_a-{}_v-{}".format(time_str, self.action_learning_rate, self.value_learning_rate).replace(".", "p"))
 
         self.learning_file = None
+        self.results_file = None
 
     def agent_init(self, taskSpecification):
         """
@@ -303,10 +304,10 @@ class cacla_agent(Agent):
         """
         pass
 
-    # def _open_results_file(self):
-    #     print "OPENING ", self.exp_dir + '/results.csv'
-    #     self.results_file = open(self.exp_dir + '/results.csv', 'w', 0)
-    #     self.results_file.write('epoch,num_episodes,total_reward,reward_per_epoch\n')
+    def _open_results_file(self):
+        print "OPENING ", self.exp_dir + '/results.csv'
+        self.results_file = open(self.exp_dir + '/results.csv', 'w', 0)
+        self.results_file.write('epoch,num_episodes,total_reward,reward_per_epoch\n')
 
     def _open_learning_file(self):
         try:
@@ -317,10 +318,12 @@ class cacla_agent(Agent):
         self.learning_file = open(self.exp_dir + '/learning.csv', 'w', 0)
         self.learning_file.write('mean_loss,action_learning_rate,value_learning_rate\n')
 
-    # def _update_results_file(self, epoch, num_episodes):
-    #     out = "{},{},{},{}\n".format(epoch, num_episodes, self.total_reward,
-    #                                  self.total_reward / float(num_episodes))
-    #     self.results_file.write(out)
+    def _update_results_file(self, epoch, num_episodes):
+        if self.results_file is None:
+            self._open_results_file()
+        out = "{},{},{},{}\n".format(epoch, num_episodes, self.total_reward,
+                                     self.total_reward / float(num_episodes))
+        self.results_file.write(out)
 
     def _update_learning_file(self):
         if self.learning_file is None:
@@ -359,7 +362,9 @@ class cacla_agent(Agent):
             self.episode_counter = 0
 
         elif params[0] == "finish_testing":
+            epoch = int(in_message.split(" ")[1])
             self.testing = False
+            self._update_results_file(epoch, self.episode_counter)
 
         elif params[0] == "set_dir":
             self.exp_dir = params[1]
