@@ -190,6 +190,7 @@ class CaclaAgentExperimenter(ExperimenterAgent):
         state, action, reward, next_state, terminal = self.training_sample
         value = self.value_network.fprop(state)
         target_value = reward + np.multiply(self.discount * self.value_network.fprop(next_state), not terminal)
+        self.value_network.train_model(state, target_value)
 
         mask = target_value > value
 
