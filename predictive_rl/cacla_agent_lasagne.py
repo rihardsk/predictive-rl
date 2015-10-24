@@ -22,6 +22,9 @@ import numpy as np
 import argparse
 import os
 from experimenter_agent import ExperimenterAgent
+import theano
+
+floatX = theano.config.floatX
 
 
 class CaclaAgentExperimenter(ExperimenterAgent):
@@ -113,8 +116,8 @@ class CaclaAgentExperimenter(ExperimenterAgent):
 
         self.discount = TaskSpec.getDiscountFactor()
 
-        self.action_ranges = np.asmatrix(self.action_ranges)
-        self.observation_ranges = np.asmatrix(self.observation_ranges)
+        self.action_ranges = np.asmatrix(self.action_ranges, dtype=floatX)
+        self.observation_ranges = np.asmatrix(self.observation_ranges, dtype=floatX)
 
     def _init_action_network(self, input_dims, output_dims, minibatch_size=32):
         """
@@ -204,65 +207,66 @@ class CaclaAgentExperimenter(ExperimenterAgent):
         return_action.doubleArray = actions
 
         self.last_action = copy.deepcopy(actions)
-
-        self.last_observation = observation.doubleArray
+        self.last_state = np.asmatrix(observation.doubleArray, dtype=floatX)
 
         return return_action
 
-    def _choose_action(self, cur_observation, reward, action_stdev=None):
+    def _choose_action(self, cur_observation, action_stdev=None):
         """
         Add the most recent data to the data set and choose
         an action based on the current policy.
         """
-        self.training_sample = (np.asmatrix(self.last_observation, dtype='float32'),
-                                np.asmatrix(self.last_action, dtype='float32'), reward,
-                                np.asmatrix(cur_observation, dtype='float32'), False)
-
         double_action = self.action_network.predict(np.asmatrix(cur_observation, dtype='float32'))
 
         # in order for the agent to learn we need some exploration
         gaussian = 0 if action_stdev is None or action_stdev == 0 else self.randGenerator.normal(0, action_stdev, len(double_action))
         exploration = gaussian * (self.action_ranges[:, 1] - self.action_ranges[:, 0])
         double_action += exploration
-        return np.clip(double_action, self.action_ranges[:, 0], self.action_ranges[:, 1])
+        return np.asmatrix(np.clip(double_action, self.action_ranges[:, 0], self.action_ranges[:, 1]), dtype=floatX)
 
-    def _do_training(self):
+    def _do_training(self, reward, observation, action, terminal):
         """
         Returns the average loss for the current batch.
         May be overridden if a subclass needs to train the network
         differently.
         """
-        state, action, reward, next_state, terminal = self.training_sample
-        value = self.value_network.predict(state)
-        target_value = reward + np.multiply(self.discount * self.value_network.predict(next_state), not terminal)
-        self.value_network.fit(state, target_value)
+        cur_state = np.asmatrix(observation, dtype=floatX)
+        last_state_value = self.value_network.predict(self.last_state)
+        if terminal:
+            target_value = reward
+        else:
+            target_value = reward + self.discount * self.value_network.predict(cur_state)
+        self.value_network.fit(self.last_state, target_value)
 
-        mask = target_value > value
+        # this reflects whether the value of the last_state has risen after the value_network update above
+        mask = target_value > last_state_value
 
         if mask[0, 0]:
-            net = self.action_network.fit(state, action)
-            return net.train_history_[-1]['train_loss']
+            net = self.action_network.fit(self.last_state, self.last_action)
+            loss = net.train_history_[-1]['train_loss']
         else:
-            return None
+            loss = None
+        self.last_state = cur_state
+        self.last_action = action
+        return loss
 
-    def _scale_inputs(self, inputs, ranges, target_amplitude=1):
+    @staticmethod
+    def _scale_inputs(inputs, ranges, target_amplitude=1):
         minranges = ranges[:, 0].T
         maxranges = ranges[:, 1].T
         scale = target_amplitude
-        return (inputs - minranges) / (maxranges - minranges) * 2 * scale - scale
+        scaled = (inputs - minranges) / (maxranges - minranges) * 2 * scale - scale
+        return np.asmatrix(scaled, dtype=floatX)
 
     def exp_step(self, reward, observation, is_testing):
         return_action = Action()
         cur_observation = self._scale_inputs(observation.doubleArray, self.observation_ranges)
-        double_action = self._choose_action(cur_observation, np.clip(reward, -1, 1), self.action_stdev)
+        double_action = self._choose_action(cur_observation, self.action_stdev)
         loss = None
         if not is_testing:
-            loss = self._do_training()
-        self.last_action = copy.deepcopy(double_action)
-        self.last_observation = cur_observation
-        return_action.doubleArray = [double_action]
+            loss = self._do_training(np.asmatrix(reward, dtype=floatX), cur_observation, double_action, False)
+        return_action.doubleArray = [copy.deepcopy(double_action)]
         return return_action if is_testing else (return_action, loss)
-
 
     def exp_end(self, reward, is_testing):
         """
@@ -277,13 +281,7 @@ class CaclaAgentExperimenter(ExperimenterAgent):
 
         if reward is not None:
             if not is_testing:
-                # Store the latest sample.
-                self.training_sample = (np.asmatrix(self.last_observation, dtype='float32'),
-                                        np.asmatrix(self.last_action, dtype='float32'), np.clip(reward, -1, 1),
-                                        np.asmatrix(np.zeros_like(self.last_observation, dtype='float32')),
-                                        True)
-
-                loss = self._do_training()
+                loss = self._do_training(np.asmatrix(reward, dtype=floatX), None, None, True)
                 return loss
 
     def agent_cleanup(self):
