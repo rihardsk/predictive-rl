@@ -15,7 +15,9 @@ from random import Random
 import mlp
 import time
 import nn
-import layers
+from lasagne import layers
+from lasagne import updates
+from nolearn.lasagne import NeuralNet
 import numpy as np
 import data_set
 import argparse
@@ -120,24 +122,59 @@ class CaclaAgentExperimenter(ExperimenterAgent):
         A subclass may override this if a different sort
         of network is desired.
         """
-        scale_factor = 1
-        layer1 = layers.FlatInputLayer(minibatch_size, input_dims, np.asarray(self.observation_ranges, dtype='float32'), scale_factor)
-        layer2 = layers.DenseLayer(layer1, 15, 0.1, 0, layers.tanh)
-        layer3 = layers.DenseLayer(layer2, output_dims, 0.1, 0, layers.identity)
-        layer4 = layers.OutputLayer(layer3)
-        return nn.NN([layer1, layer2, layer3, layer4], batch_size=minibatch_size, learning_rate=self.action_learning_rate)
+        nnlayers = [('input', layers.InputLayer), ('hidden', layers.DenseLayer), ('output', layers.DenseLayer)]
+        action_net = NeuralNet(layers=nnlayers,
+
+                               # layer parameters:
+                               input_shape=(None, input_dims),
+                               hidden_num_units=15,
+                               output_nonlinearity=None,
+                               output_num_units=output_dims,
+
+                               # optimization method:
+                               update=updates.sgd,
+                               update_learning_rate=self.action_learning_rate,
+
+                               regression=True,  # flag to indicate we're dealing with regression problem
+                               verbose=1,
+                               )
+        # scale_factor = 1
+        # layer1 = layers.FlatInputLayer(minibatch_size, input_dims, np.asarray(self.observation_ranges, dtype='float32'), scale_factor)
+        # layer2 = layers.DenseLayer(layer1, 15, 0.1, 0, layers.tanh)
+        # layer3 = layers.DenseLayer(layer2, output_dims, 0.1, 0, layers.identity)
+        # layer4 = layers.OutputLayer(layer3)
+        # return nn.NN([layer1, layer2, layer3, layer4], batch_size=minibatch_size, learning_rate=self.action_learning_rate)
+        return action_net
 
     def _init_value_network(self, input_dims, output_dims, minibatch_size=32):
         """
         A subclass may override this if a different sort
         of network is desired.
         """
-        scale_factor = 2
-        layer1 = layers.FlatInputLayer(minibatch_size, input_dims, np.asarray(self.observation_ranges, dtype='float32'), scale_factor)
-        layer2 = layers.DenseLayer(layer1, 15, 0.1, 0, layers.tanh)
-        layer3 = layers.DenseLayer(layer2, output_dims, 0.1, 0, layers.identity)
-        layer4 = layers.OutputLayer(layer3)
-        return nn.NN([layer1, layer2, layer3, layer4], batch_size=minibatch_size, learning_rate=self.value_learning_rate)
+
+        nnlayers = [('input', layers.InputLayer), ('hidden', layers.DenseLayer), ('output', layers.DenseLayer)]
+        value_net = NeuralNet(layers=nnlayers,
+
+                               # layer parameters:
+                               input_shape=(None, input_dims),
+                               hidden_num_units=15,
+                               output_nonlinearity=None,
+                               output_num_units=output_dims,
+
+                               # optimization method:
+                               update=updates.sgd,
+                               update_learning_rate=self.action_learning_rate,
+
+                               regression=True,  # flag to indicate we're dealing with regression problem
+                               verbose=1,
+                              )
+        # scale_factor = 2
+        # layer1 = layers.FlatInputLayer(minibatch_size, input_dims, np.asarray(self.observation_ranges, dtype='float32'), scale_factor)
+        # layer2 = layers.DenseLayer(layer1, 15, 0.1, 0, layers.tanh)
+        # layer3 = layers.DenseLayer(layer2, output_dims, 0.1, 0, layers.identity)
+        # layer4 = layers.OutputLayer(layer3)
+        # return nn.NN([layer1, layer2, layer3, layer4], batch_size=minibatch_size, learning_rate=self.value_learning_rate)
+        return value_net
 
     def agent_start(self, observation):
         """
@@ -154,7 +191,8 @@ class CaclaAgentExperimenter(ExperimenterAgent):
 
         # this_int_action = self.randGenerator.randint(0, self.num_actions-1)
         observation_matrix = np.asmatrix(observation.doubleArray, dtype='float32')
-        actions = self.action_network.fprop(observation_matrix)
+        actions = self.action_network.predict(observation_matrix)
+
         return_action = Action()
         return_action.doubleArray = actions
 
@@ -170,10 +208,10 @@ class CaclaAgentExperimenter(ExperimenterAgent):
         an action based on the current policy.
         """
         self.training_sample = (np.asmatrix(self.last_observation, dtype='float32'),
-                            np.asmatrix(self.last_action, dtype='float32'), reward,
-                            np.asmatrix(cur_observation, dtype='float32'), False)
+                                np.asmatrix(self.last_action, dtype='float32'), reward,
+                                np.asmatrix(cur_observation, dtype='float32'), False)
 
-        double_action = self.action_network.fprop(np.asmatrix(cur_observation, dtype='float32'))
+        double_action = self.action_network.predict(np.asmatrix(cur_observation, dtype='float32'))
 
         # in order for the agent to learn we need some exploration
         gaussian = 0 if action_stdev is None or action_stdev == 0 else self.randGenerator.normal(0, action_stdev, len(double_action))
@@ -188,19 +226,26 @@ class CaclaAgentExperimenter(ExperimenterAgent):
         differently.
         """
         state, action, reward, next_state, terminal = self.training_sample
-        value = self.value_network.fprop(state)
-        target_value = reward + np.multiply(self.discount * self.value_network.fprop(next_state), not terminal)
+        value = self.value_network.predict(state)
+        target_value = reward + np.multiply(self.discount * self.value_network.predict(next_state), not terminal)
+        self.value_network.fit(state, target_value)
 
         mask = target_value > value
 
         if mask[0, 0]:
-            return self.action_network.train_model(state, action)
+            return self.action_network.fit(state, action)
         else:
             return None
 
+    def _scale_inputs(self, inputs, ranges, target_amplitude=1):
+        minranges = ranges[:, 0].T
+        maxranges = ranges[:, 1].T
+        scale = target_amplitude
+        return (inputs - minranges) / (maxranges - minranges) * 2 * scale - scale
+
     def exp_step(self, reward, observation, is_testing):
         return_action = Action()
-        cur_observation = observation.doubleArray
+        cur_observation = self._scale_inputs(observation.doubleArray, self.observation_ranges)
         double_action = self._choose_action(cur_observation, np.clip(reward, -1, 1), self.action_stdev)
         loss = None
         if not is_testing:
@@ -226,9 +271,9 @@ class CaclaAgentExperimenter(ExperimenterAgent):
             if not is_testing:
                 # Store the latest sample.
                 self.training_sample = (np.asmatrix(self.last_observation, dtype='float32'),
-                                np.asmatrix(self.last_action, dtype='float32'), np.clip(reward, -1, 1),
-                                np.asmatrix(np.zeros_like(self.last_observation, dtype='float32')),
-                                True)
+                                        np.asmatrix(self.last_action, dtype='float32'), np.clip(reward, -1, 1),
+                                        np.asmatrix(np.zeros_like(self.last_observation, dtype='float32')),
+                                        True)
 
                 loss = self._do_training()
                 return loss
