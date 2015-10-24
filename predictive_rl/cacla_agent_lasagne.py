@@ -12,14 +12,13 @@ from rlglue.types import Observation
 from rlglue.utils import TaskSpecVRLGLUE3
 from random import Random
 #from pylearn2.models import mlp
-import mlp
 import time
-import nn
 from lasagne import layers
 from lasagne import updates
+import nolearn
 from nolearn.lasagne import NeuralNet
+from nolearn.lasagne import BatchIterator
 import numpy as np
-import data_set
 import argparse
 import os
 from experimenter_agent import ExperimenterAgent
@@ -136,7 +135,10 @@ class CaclaAgentExperimenter(ExperimenterAgent):
                                update_learning_rate=self.action_learning_rate,
 
                                regression=True,  # flag to indicate we're dealing with regression problem
-                               verbose=1,
+                               max_epochs=1,
+                               batch_iterator_train=BatchIterator(batch_size=1),
+                               train_split=nolearn.lasagne.TrainSplit(eval_size=0),
+                               verbose=0,
                                )
         # scale_factor = 1
         # layer1 = layers.FlatInputLayer(minibatch_size, input_dims, np.asarray(self.observation_ranges, dtype='float32'), scale_factor)
@@ -144,6 +146,7 @@ class CaclaAgentExperimenter(ExperimenterAgent):
         # layer3 = layers.DenseLayer(layer2, output_dims, 0.1, 0, layers.identity)
         # layer4 = layers.OutputLayer(layer3)
         # return nn.NN([layer1, layer2, layer3, layer4], batch_size=minibatch_size, learning_rate=self.action_learning_rate)
+        action_net.initialize()
         return action_net
 
     def _init_value_network(self, input_dims, output_dims, minibatch_size=32):
@@ -166,7 +169,10 @@ class CaclaAgentExperimenter(ExperimenterAgent):
                                update_learning_rate=self.action_learning_rate,
 
                                regression=True,  # flag to indicate we're dealing with regression problem
-                               verbose=1,
+                               max_epochs=1,
+                               batch_iterator_train=BatchIterator(batch_size=1),
+                               train_split=nolearn.lasagne.TrainSplit(eval_size=0),
+                               verbose=0,
                               )
         # scale_factor = 2
         # layer1 = layers.FlatInputLayer(minibatch_size, input_dims, np.asarray(self.observation_ranges, dtype='float32'), scale_factor)
@@ -174,6 +180,7 @@ class CaclaAgentExperimenter(ExperimenterAgent):
         # layer3 = layers.DenseLayer(layer2, output_dims, 0.1, 0, layers.identity)
         # layer4 = layers.OutputLayer(layer3)
         # return nn.NN([layer1, layer2, layer3, layer4], batch_size=minibatch_size, learning_rate=self.value_learning_rate)
+        value_net.initialize()
         return value_net
 
     def agent_start(self, observation):
@@ -233,7 +240,8 @@ class CaclaAgentExperimenter(ExperimenterAgent):
         mask = target_value > value
 
         if mask[0, 0]:
-            return self.action_network.fit(state, action)
+            net = self.action_network.fit(state, action)
+            return net.train_history_[-1]['train_loss']
         else:
             return None
 
