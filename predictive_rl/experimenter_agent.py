@@ -159,5 +159,3 @@ class ExperimenterAgent(object, Agent):
         results = np.loadtxt(open(file, "rb"), delimiter=",", skiprows=1)
         plt.plot(results[:, 0], np.convolve(results[:, 1], kernel, mode='same'), '-*')
         plt.show()
-
-

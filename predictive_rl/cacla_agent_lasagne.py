@@ -50,8 +50,7 @@ class CaclaAgentLasagne(ExperimenterAgent):
         args = parser.parse_args()
         self._get_parsed_args(args)
 
-    @staticmethod
-    def _add_parse_args(parser):
+    def _add_parse_args(self, parser):
         parser.add_argument('--action_learning_rate', type=float, default=.01,
                             help='Learning rate')
         parser.add_argument('--value_learning_rate', type=float, default=.01,
@@ -259,7 +258,11 @@ class CaclaAgentLasagne(ExperimenterAgent):
 
         if reward is not None:
             if not is_testing:
-                loss = self._do_training(np.asmatrix(reward, dtype=floatX), None, None, True)
+                loss = self._do_training(np.asmatrix(reward, dtype=floatX),
+                                         # doesn't really matter what we pass as state and action
+                                         np.zeros_like(self.last_state, dtype=floatX),
+                                         np.zeros_like(self.last_action, dtype=floatX),
+                                         True)
                 return loss
 
     def agent_cleanup(self):
