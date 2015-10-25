@@ -13,8 +13,10 @@ from rlglue.utils import TaskSpecVRLGLUE3
 from random import Random
 #from pylearn2.models import mlp
 import time
+import lasagne
 from lasagne import layers
 from lasagne import updates
+from lasagne import nonlinearities
 import nolearn
 from nolearn.lasagne import NeuralNet
 from nolearn.lasagne import BatchIterator
@@ -27,7 +29,7 @@ import theano
 floatX = theano.config.floatX
 
 
-class CaclaAgentExperimenter(ExperimenterAgent):
+class CaclaAgentLasagne(ExperimenterAgent):
     randGenerator = np.random
 
     def __init__(self):
@@ -36,7 +38,7 @@ class CaclaAgentExperimenter(ExperimenterAgent):
         instead of agent_init to make it possible to use --help from
         the command line without starting an experiment.
         """
-        super(CaclaAgentExperimenter, self).__init__()
+        super(CaclaAgentLasagne, self).__init__()
 
         # Handle command line argument:
         parser = argparse.ArgumentParser(description='Neural rl agent.')
@@ -97,94 +99,62 @@ class CaclaAgentExperimenter(ExperimenterAgent):
         self.action_ranges = TaskSpec.getDoubleActions()
         self.action_size = len(self.action_ranges)
 
-        if self.nn_action_file is None:
-            self.action_network = self._init_action_network(self.observation_size,
-                                                            self.action_size,
-                                                            minibatch_size=1)
-        else:
-            handle = open(self.nn_action_file, 'r')
-            self.action_network = cPickle.load(handle)
-
-        if self.nn_value_file is None:
-            self.value_network = self._init_value_network(self.observation_size,
-                                                          1,
-                                                          minibatch_size=1)
-        else:
-            handle = open(self.nn_value_file, 'r')
-            self.value_network = cPickle.load(handle)
-
+        self._init_action_network()
+        self._init_value_network()
 
         self.discount = TaskSpec.getDiscountFactor()
 
         self.action_ranges = np.asmatrix(self.action_ranges, dtype=floatX)
         self.observation_ranges = np.asmatrix(self.observation_ranges, dtype=floatX)
 
-    def _init_action_network(self, input_dims, output_dims, minibatch_size=32):
+    def _init_value_network(self):
+        if self.nn_value_file is None:
+            self.value_network = self._create_nnet(self.observation_size,
+                                                   1,
+                                                   self.value_learning_rate,
+                                                   batch_size=1)
+        else:
+            handle = open(self.nn_value_file, 'r')
+            self.value_network = cPickle.load(handle)
+
+    def _init_action_network(self):
+        if self.nn_action_file is None:
+            self.action_network = self._create_nnet(self.observation_size,
+                                                    self.action_size,
+                                                    self.action_learning_rate,
+                                                    batch_size=1)
+        else:
+            handle = open(self.nn_action_file, 'r')
+            self.action_network = cPickle.load(handle)
+
+    def _create_nnet(self, input_dims, output_dims, learning_rate, num_hidden_units=15, batch_size=32, max_train_epochs=1,
+                     hidden_nonlinearity=nonlinearities.rectify, output_nonlinearity=None, update_method=updates.sgd):
         """
         A subclass may override this if a different sort
         of network is desired.
         """
         nnlayers = [('input', layers.InputLayer), ('hidden', layers.DenseLayer), ('output', layers.DenseLayer)]
-        action_net = NeuralNet(layers=nnlayers,
+        nnet = NeuralNet(layers=nnlayers,
 
-                               # layer parameters:
-                               input_shape=(None, input_dims),
-                               hidden_num_units=15,
-                               output_nonlinearity=None,
-                               output_num_units=output_dims,
+                           # layer parameters:
+                           input_shape=(None, input_dims),
+                           hidden_num_units=num_hidden_units,
+                           hidden_nonlinearity=hidden_nonlinearity,
+                           output_nonlinearity=output_nonlinearity,
+                           output_num_units=output_dims,
 
-                               # optimization method:
-                               update=updates.sgd,
-                               update_learning_rate=self.action_learning_rate,
+                           # optimization method:
+                           update=update_method,
+                           update_learning_rate=learning_rate,
 
-                               regression=True,  # flag to indicate we're dealing with regression problem
-                               max_epochs=1,
-                               batch_iterator_train=BatchIterator(batch_size=1),
-                               train_split=nolearn.lasagne.TrainSplit(eval_size=0),
-                               verbose=0,
-                               )
-        # scale_factor = 1
-        # layer1 = layers.FlatInputLayer(minibatch_size, input_dims, np.asarray(self.observation_ranges, dtype='float32'), scale_factor)
-        # layer2 = layers.DenseLayer(layer1, 15, 0.1, 0, layers.tanh)
-        # layer3 = layers.DenseLayer(layer2, output_dims, 0.1, 0, layers.identity)
-        # layer4 = layers.OutputLayer(layer3)
-        # return nn.NN([layer1, layer2, layer3, layer4], batch_size=minibatch_size, learning_rate=self.action_learning_rate)
-        action_net.initialize()
-        return action_net
-
-    def _init_value_network(self, input_dims, output_dims, minibatch_size=32):
-        """
-        A subclass may override this if a different sort
-        of network is desired.
-        """
-
-        nnlayers = [('input', layers.InputLayer), ('hidden', layers.DenseLayer), ('output', layers.DenseLayer)]
-        value_net = NeuralNet(layers=nnlayers,
-
-                               # layer parameters:
-                               input_shape=(None, input_dims),
-                               hidden_num_units=15,
-                               output_nonlinearity=None,
-                               output_num_units=output_dims,
-
-                               # optimization method:
-                               update=updates.sgd,
-                               update_learning_rate=self.action_learning_rate,
-
-                               regression=True,  # flag to indicate we're dealing with regression problem
-                               max_epochs=1,
-                               batch_iterator_train=BatchIterator(batch_size=1),
-                               train_split=nolearn.lasagne.TrainSplit(eval_size=0),
-                               verbose=0,
-                              )
-        # scale_factor = 2
-        # layer1 = layers.FlatInputLayer(minibatch_size, input_dims, np.asarray(self.observation_ranges, dtype='float32'), scale_factor)
-        # layer2 = layers.DenseLayer(layer1, 15, 0.1, 0, layers.tanh)
-        # layer3 = layers.DenseLayer(layer2, output_dims, 0.1, 0, layers.identity)
-        # layer4 = layers.OutputLayer(layer3)
-        # return nn.NN([layer1, layer2, layer3, layer4], batch_size=minibatch_size, learning_rate=self.value_learning_rate)
-        value_net.initialize()
-        return value_net
+                           regression=True,  # flag to indicate we're dealing with regression problem
+                           max_epochs=max_train_epochs,
+                           batch_iterator_train=BatchIterator(batch_size=batch_size),
+                           train_split=nolearn.lasagne.TrainSplit(eval_size=0),
+                           verbose=0,
+                         )
+        nnet.initialize()
+        return nnet
 
     def agent_start(self, observation):
         """
@@ -304,7 +274,7 @@ class CaclaAgentExperimenter(ExperimenterAgent):
 
 
 def main():
-    AgentLoader.loadAgent(CaclaAgentExperimenter())
+    AgentLoader.loadAgent(CaclaAgentLasagne())
 
 
 if __name__ == "__main__":
