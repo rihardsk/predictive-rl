@@ -42,6 +42,16 @@ class CaclaAgentLasagne(ExperimenterAgent):
 
         # Handle command line argument:
         parser = argparse.ArgumentParser(description='Neural rl agent.')
+        self._add_parse_args(parser)
+
+        # Create instance variables directy from the arguments:
+        # parser.parse_known_args(namespace=self)
+
+        args = parser.parse_args()
+        self._get_parsed_args(args)
+
+    @staticmethod
+    def _add_parse_args(parser):
         parser.add_argument('--action_learning_rate', type=float, default=.01,
                             help='Learning rate')
         parser.add_argument('--value_learning_rate', type=float, default=.01,
@@ -56,10 +66,8 @@ class CaclaAgentLasagne(ExperimenterAgent):
                             help='Pickle file containing trained value net.')
         parser.add_argument('--collect_rewards', type=bool, default=True,
                             help='If set to true, testing episode mean rewards will be saved to a file.')
-        # Create instance variables directy from the arguments:
-        # parser.parse_known_args(namespace=self)
 
-        args = parser.parse_args()
+    def _get_parsed_args(self, args):
         self.action_learning_rate = args.action_learning_rate
         self.value_learning_rate = args.value_learning_rate
         self.exp_dir = args.dir
