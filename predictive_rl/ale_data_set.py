@@ -35,8 +35,8 @@ actions, and rewards.
         self.rng = rng
 
         # Allocate the circular buffers and indices.
-        self.imgs = np.zeros((max_steps, height, width), dtype='uint8')
-        self.actions = np.zeros(max_steps, dtype='int32')
+        self.imgs = np.zeros((max_steps, height, width), dtype=floatX)
+        self.actions = np.zeros(max_steps, dtype=floatX)
         self.rewards = np.zeros(max_steps, dtype=floatX)
         self.terminal = np.zeros(max_steps, dtype='bool')
 
@@ -100,21 +100,25 @@ next_states for batch_size randomly chosen state transitions.
                            self.phi_length,
                            self.height,
                            self.width),
-                          dtype='uint8')
-        actions = np.zeros((batch_size, 1), dtype='int32')
+                          dtype=floatX)
+        actions = np.zeros((batch_size, 1), dtype=floatX)
         rewards = np.zeros((batch_size, 1), dtype=floatX)
         terminal = np.zeros((batch_size, 1), dtype='bool')
         next_states = np.zeros((batch_size,
                                 self.phi_length,
                                 self.height,
                                 self.width),
-                               dtype='uint8')
+                               dtype=floatX)
 
         count = 0
         while count < batch_size:
             # Randomly choose a time step from the replay memory.
-            index = self.rng.randint(self.bottom,
-                                     self.bottom + self.size - self.phi_length)
+            # Some rand generators don't like that ranges match
+            if self.bottom == self.bottom + self.size - self.phi_length:
+                index = self.bottom
+            else:
+                index = self.rng.randint(self.bottom,
+                                         self.bottom + self.size - self.phi_length)
 
             # always include the last added sample (unless said othervise)
             if include_previous and count == 0:
@@ -205,9 +209,9 @@ def trivial_tests():
                       rng=np.random.RandomState(42),
                       max_steps=3, phi_length=2)
 
-    img1 = np.array([[1, 1]], dtype='uint8')
-    img2 = np.array([[2, 2]], dtype='uint8')
-    img3 = np.array([[3, 3]], dtype='uint8')
+    img1 = np.array([[1, 1]], dtype=floatX)
+    img2 = np.array([[2, 2]], dtype=floatX)
+    img3 = np.array([[3, 3]], dtype=floatX)
 
     dataset.add_sample(img1, 1, 1, False)
     dataset.add_sample(img2, 2, 2, False)
