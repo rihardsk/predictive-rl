@@ -90,7 +90,7 @@ actions, and rewards.
         phi[-1] = img
         return phi
 
-    def random_batch(self, batch_size):
+    def random_batch(self, batch_size, include_previous=False):
         """Return corresponding states, actions, rewards, terminal status, and
 next_states for batch_size randomly chosen state transitions.
 
@@ -116,7 +116,11 @@ next_states for batch_size randomly chosen state transitions.
             index = self.rng.randint(self.bottom,
                                      self.bottom + self.size - self.phi_length)
 
-            initial_indices = np.arange(index, index + self.phi_length)
+            # always include the last added sample (unless said othervise)
+            if include_previous and count == 0:
+                initial_indices = np.arange((self.top - 1) % self.max_steps, index + self.phi_length)
+            else:
+                initial_indices = np.arange(index, index + self.phi_length)
             transition_indices = initial_indices + 1
             end_index = index + self.phi_length - 1
             
