@@ -19,14 +19,17 @@ class CaclaAgentReplay(CaclaAgentLasagne):
 
     def _add_parse_args(self, parser):
         super(CaclaAgentReplay, self)._add_parse_args(parser)
-        parser.add_argument('--batch_size', type=int, default=32,
+        parser.add_argument('--batch_size', type=int, default=256,
+                            help="The neural nets' minibatch size")
+        parser.add_argument('--replay_size', type=int, default=1024,
                             help='The number of examples to retrieve from the replay memory when training')
-        parser.add_argument('--max_history', type=int, default=32,
+        parser.add_argument('--max_history', type=int, default=10000,
                             help='The max replay history to store from which to choose the random batches of samples')
 
     def _get_parsed_args(self, args):
         super(CaclaAgentReplay, self)._get_parsed_args(args)
         self.batch_size = args.batch_size
+        self.replay_size = args.replay_size
         self.max_history = args.max_history
 
     def agent_init(self, taskSpecification):
@@ -62,7 +65,7 @@ class CaclaAgentReplay(CaclaAgentLasagne):
         terminal = np.asmatrix(terminal)
         cur_state = np.asmatrix(observation, dtype=floatX)
         if self.data_set.size > 0:
-            re_states, re_actions, re_rewards, re_next_states, re_terminals = self.data_set.random_batch(self.batch_size)
+            re_states, re_actions, re_rewards, re_next_states, re_terminals = self.data_set.random_batch(self.replay_size)
             # ale_data_set stores states as batches of imgs. convert them to a 2D array
             re_states = re_states[:,0,0,:]
             re_next_states = re_next_states[:,0,0,:]

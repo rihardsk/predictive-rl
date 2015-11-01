@@ -55,8 +55,12 @@ class CaclaAgentLasagne(ExperimenterAgent):
                             help='Learning rate')
         parser.add_argument('--value_learning_rate', type=float, default=.01,
                             help='Learning rate')
-        parser.add_argument('--action_stdev', type=str, default=0.1,
-                            help='Action space exploration standard deviation for Gaussian distribution.')
+        parser.add_argument('--action_stdev', type=float, default=0.1,
+                            help='Action space exploration standard deviation for Gaussian distribution. '
+                                 'Applied to action range.')
+        parser.add_argument('--noise_stdev', type=float, default=0.01,
+                            help='Action space exploration standard deviation for Gaussian distribution. '
+                                 'Applied to the actions magnitude.')
         parser.add_argument('--dir', type=str, default="experiments_minimal",
                             help='Directory to save results')
         parser.add_argument('--nn_action_file', type=str, default=None,
@@ -73,6 +77,7 @@ class CaclaAgentLasagne(ExperimenterAgent):
         self.nn_action_file = args.nn_action_file
         self.nn_value_file = args.nn_value_file
         self.action_stdev = args.action_stdev
+        self.noise_stdev = args.noise_stdev
         self.collect_rewards = args.collect_rewards
 
     def agent_init(self, taskSpecification):
@@ -188,7 +193,7 @@ class CaclaAgentLasagne(ExperimenterAgent):
 
         return return_action
 
-    def _choose_action(self, cur_observation, action_stdev=None):
+    def _choose_action(self, cur_observation, action_stdev=None, noise_stdev=None):
         """
         Add the most recent data to the data set and choose
         an action based on the current policy.
@@ -196,9 +201,11 @@ class CaclaAgentLasagne(ExperimenterAgent):
         double_action = self.action_network.predict(np.asmatrix(cur_observation, dtype='float32'))
 
         # in order for the agent to learn we need some exploration
-        gaussian = 0 if action_stdev is None or action_stdev == 0 else self.randGenerator.normal(0, action_stdev, len(double_action))
-        exploration = gaussian * (self.action_ranges[:, 1] - self.action_ranges[:, 0])
-        double_action += exploration
+        gaussian1 = 0 if noise_stdev is None or noise_stdev == 0 else self.randGenerator.normal(0, noise_stdev, len(double_action))
+        gaussian2 = 0 if action_stdev is None or action_stdev == 0 else self.randGenerator.normal(0, action_stdev, len(double_action))
+        exploration = gaussian1 * (self.action_ranges[:, 1] - self.action_ranges[:, 0]) + gaussian2 * double_action
+        # double_action += exploration
+        double_action += gaussian2
         return np.asmatrix(np.clip(double_action, self.action_ranges[:, 0], self.action_ranges[:, 1]), dtype=floatX)
 
     def _do_training(self, reward, observation, action, terminal):
@@ -238,7 +245,7 @@ class CaclaAgentLasagne(ExperimenterAgent):
     def exp_step(self, reward, observation, is_testing):
         return_action = Action()
         cur_observation = self._scale_inputs(observation.doubleArray, self.observation_ranges)
-        double_action = self._choose_action(cur_observation, self.action_stdev)
+        double_action = self._choose_action(cur_observation, self.action_stdev, self.noise_stdev)
         loss = None
         if not is_testing:
             loss = self._do_training(np.asmatrix(reward, dtype=floatX), cur_observation, double_action, False)
