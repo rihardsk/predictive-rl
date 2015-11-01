@@ -2,6 +2,11 @@ __author__ = 'rihards'
 
 from experimenter_agent import ExperimenterAgent
 import argparse
+from rlglue.utils import TaskSpecVRLGLUE3
+import numpy as np
+import theano
+
+floatX = theano.config.floatX
 
 
 class PredictiveAgent(ExperimenterAgent):
@@ -46,3 +51,41 @@ class PredictiveAgent(ExperimenterAgent):
         # self.action_stdev = args.action_stdev
         # self.noise_stdev = args.noise_stdev
         self.collect_rewards = args.collect_rewards
+
+    def agent_init(self, taskSpecification):
+        """
+        This function is called once at the beginning of an experiment.
+
+        :param taskSpecification: A string defining the task.  This string
+        is decoded using TaskSpecVRLGLUE3.TaskSpecParser
+        :return:
+        """
+
+        # DO SOME SANITY CHECKING ON THE TASKSPEC
+        TaskSpec = TaskSpecVRLGLUE3.TaskSpecParser(taskSpecification)
+
+        if TaskSpec.valid:
+
+            assert ((len(TaskSpec.getIntObservations()) == 0) !=
+                    (len(TaskSpec.getDoubleObservations()) == 0)), \
+                "expecting continous or discrete observations.  Not both."
+            assert not TaskSpec.isSpecial(TaskSpec.getDoubleActions()[0][0]), \
+                " expecting min action to be a number not a special value"
+            assert not TaskSpec.isSpecial(TaskSpec.getDoubleActions()[0][1]), \
+                " expecting max action to be a number not a special value"
+            #self.num_actions = TaskSpec.getIntActions()[0][1]+1
+        else:
+            print "INVALID TASK SPEC"
+
+        self.observation_ranges = TaskSpec.getDoubleObservations()  # TODO: take care of int observations
+        self.observation_size = len(self.observation_ranges)
+
+        self.action_ranges = TaskSpec.getDoubleActions()
+        self.action_size = len(self.action_ranges)
+
+        self._init_network()
+
+        self.discount = TaskSpec.getDiscountFactor()
+
+        self.action_ranges = np.asmatrix(self.action_ranges, dtype=floatX)
+        self.observation_ranges = np.asmatrix(self.observation_ranges, dtype=floatX)
