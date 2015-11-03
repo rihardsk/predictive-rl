@@ -29,7 +29,7 @@ class PredictiveAgent(ExperimenterAgent):
         instead of agent_init to make it possible to use --help from
         the command line without starting an experiment.
         """
-        super(ExperimenterAgent, self).__init__()
+        super(PredictiveAgent, self).__init__()
 
         # Handle command line argument:
         parser = argparse.ArgumentParser(description='Neural rl agent.')
@@ -102,6 +102,7 @@ class PredictiveAgent(ExperimenterAgent):
 
         self.action_ranges = np.asmatrix(self.action_ranges, dtype=floatX)
         self.observation_ranges = np.asmatrix(self.observation_ranges, dtype=floatX)
+        self.testing = False
 
     def _init_network(self):
         if self.nn_file is None:
@@ -222,6 +223,7 @@ class PredictiveAgent(ExperimenterAgent):
         self.last_action = action
         self.last_original_action = pred_action
         self.last_state_value = observation_value
+        self.pred_observation = pred_observation
         return loss
 
     def exp_end(self, reward, is_testing):
