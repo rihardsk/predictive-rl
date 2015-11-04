@@ -13,9 +13,11 @@ import theano
 from lasagne import layers
 from lasagne import updates
 from lasagne import nonlinearities
+from lasagne import objectives
 import nolearn
 from nolearn.lasagne import NeuralNet
 from nolearn.lasagne import BatchIterator
+import theano.tensor as T
 
 floatX = theano.config.floatX
 
@@ -107,39 +109,67 @@ class PredictiveAgent(ExperimenterAgent):
     def _init_network(self):
         if self.nn_file is None:
             self.nnet = self.create_nnet(self.observation_size,
-                                         self.action_size + self.observation_size + 1,
+                                         self.action_size,
+                                         self.observation_size + 1,
                                          self.learning_rate,
                                          batch_size=1)
-            self.nnet.initialize()
         else:
             handle = open(self.nn_file, 'r')
             self.nnet = cPickle.load(handle)
 
     @staticmethod
-    def create_nnet(input_dims, output_dims, learning_rate, num_hidden_units=20, batch_size=32, max_train_epochs=1,
-                      hidden_nonlinearity=nonlinearities.rectify, output_nonlinearity=None, update_method=updates.sgd):
-        nnlayers = [('input', layers.InputLayer),
-                    ('hidden', layers.DenseLayer),
-                    ('output', layers.DenseLayer)]
-        nnet = NeuralNet(layers=nnlayers,
+    def create_nnet(input_dims, action_dims, observation_dims, learning_rate, num_hidden_units=20, batch_size=32,
+                    max_train_epochs=1, hidden_nonlinearity=nonlinearities.rectify, output_nonlinearity=None,
+                    update_method=updates.sgd):
+        commonlayers = []
+        commonlayers.append(layers.InputLayer(shape=(None, input_dims)))
+        commonlayers.append(layers.DenseLayer(commonlayers[-1], num_hidden_units, nonlinearity=hidden_nonlinearity))
+        actionlayers = [layers.DenseLayer(commonlayers[-1], action_dims, nonlinearity=output_nonlinearity)]
+        observlayers = [layers.DenseLayer(commonlayers[-1], observation_dims, nonlinearity=output_nonlinearity)]
+        concatlayers = [layers.ConcatLayer([actionlayers[-1], observlayers[-1]])]
+        action_prediction = layers.get_output(actionlayers[-1])
+        observ_prediction = layers.get_output(observlayers[-1])
+        concat_prediction = layers.get_output(concatlayers[-1])
+        input_var = commonlayers[0].input_var
+        # action_target_type = T.TensorType(floatX, [False] * action_dims)
+        # observ_target_type = T.TensorType(floatX, [False] * observation_dims)
+        # concat_target_type = T.TensorType(floatX, [False] * (action_dims + observation_dims))
+        # action_target = action_target_type()
+        # observ_target = observ_target_type()
+        # concat_target = concat_target_type()
+        action_target = T.matrix(name="action_target", dtype=floatX)
+        observ_target = T.matrix(name="observ_target", dtype=floatX)
+        concat_target = T.matrix(name="concat_target", dtype=floatX)
+        action_loss = objectives.squared_error(action_prediction, action_target).mean()
+        observ_loss = objectives.squared_error(observ_prediction, observ_target).mean()
+        concat_loss = objectives.squared_error(concat_prediction, concat_target).mean()
+        action_params = layers.get_all_params(actionlayers[-1], trainable=True)
+        observ_params = layers.get_all_params(observlayers[-1], trainable=True)
+        concat_params = layers.get_all_params(concatlayers[-1], trainable=True)
+        action_updates = update_method(action_loss, action_params, learning_rate)
+        observ_updates = update_method(observ_loss, observ_params, learning_rate)
+        concat_updates = update_method(concat_loss, concat_params, learning_rate)
 
-                           # layer parameters:
-                           input_shape=(None, input_dims),
-                           hidden_num_units=num_hidden_units,
-                           hidden_nonlinearity=hidden_nonlinearity,
-                           output_nonlinearity=output_nonlinearity,
-                           output_num_units=output_dims,
+        fit_action = theano.function([input_var, action_target], action_loss, updates=action_updates)
+        fit_observ = theano.function([input_var, observ_target], observ_loss, updates=observ_updates)
+        fit_concat = theano.function([input_var, concat_target], concat_loss, updates=concat_updates)
 
-                           # optimization method:
-                           update=update_method,
-                           update_learning_rate=learning_rate,
+        predict_action = theano.function([input_var], action_prediction)
+        predict_observ = theano.function([input_var], observ_prediction)
+        predict_concat = theano.function([input_var], concat_prediction)
 
-                           regression=True,  # flag to indicate we're dealing with regression problem
-                           max_epochs=max_train_epochs,
-                           batch_iterator_train=BatchIterator(batch_size=batch_size),
-                           train_split=nolearn.lasagne.TrainSplit(eval_size=0),
-                           verbose=0,
-                         )
+        class Mock(object):
+            def __init__(self, **kwargs):
+                self.__dict__.update(kwargs)
+
+        nnet = Mock(
+            fit_action=fit_action,
+            fit_observ=fit_observ,
+            fit_both=fit_concat,
+            predict_action=predict_action,
+            predict_observ=predict_observ,
+            predict_both=predict_concat,
+        )
         return nnet
 
     def agent_start(self, observation):
@@ -190,7 +220,7 @@ class PredictiveAgent(ExperimenterAgent):
         return return_action if is_testing else (return_action, loss)
 
     def _predict(self, observation):
-        pred_matrix = self.nnet.predict(observation)
+        pred_matrix = self.nnet.predict_both(observation)
         next_action = pred_matrix[:, 0:self.action_size]
         next_observation = pred_matrix[:, self.action_size:self.action_size + self.observation_size]
         observation_value = pred_matrix[:, self.action_size + self.observation_size]
@@ -213,12 +243,10 @@ class PredictiveAgent(ExperimenterAgent):
         mask = target_value > last_state_value
 
         if mask[0, 0]:
-            net = self.nnet.fit(self.last_state, np.hstack((self.last_action, observation, target_value)))
-            loss = net.train_history_[-1]['train_loss']
+            loss = self.nnet.fit_both(self.last_state, np.hstack((self.last_action, observation, target_value)))
         else:
             # TODO: should not train  on action at all here
-            net = self.nnet.fit(self.last_state, np.hstack((self.last_original_action, observation, target_value)))
-            loss = net.train_history_[-1]['train_loss']
+            loss = self.nnet.fit_observ(self.last_state, np.hstack((observation, target_value)))
         self.last_state = cur_state
         self.last_action = action
         self.last_original_action = pred_action
