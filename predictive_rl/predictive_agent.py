@@ -22,6 +22,11 @@ import theano.tensor as T
 floatX = theano.config.floatX
 
 
+class Mock(object):
+    def __init__(self, **kwargs):
+        self.__dict__.update(kwargs)
+
+
 class PredictiveAgent(ExperimenterAgent):
     randGenerator = np.random
 
@@ -56,6 +61,8 @@ class PredictiveAgent(ExperimenterAgent):
                             help='Directory to save results')
         parser.add_argument('--nn_file', type=str, default=None,
                             help='Pickle file containing trained neural net.')
+        parser.add_argument('--nn_hidden_size', type=int, default=20,
+                            help='Neural net\'s hidden layer size')
         parser.add_argument('--collect_rewards', type=bool, default=True,
                             help='If set to true, testing episode mean rewards will be saved to a file.')
 
@@ -63,6 +70,7 @@ class PredictiveAgent(ExperimenterAgent):
         self.learning_rate = args.learning_rate
         self.exp_dir = args.dir
         self.nn_file = args.nn_file
+        self.nn_hidden_size = args.nn_hidden_size
         self.action_stdev = args.action_stdev
         # self.noise_stdev = args.noise_stdev
         self.collect_rewards = args.collect_rewards
@@ -112,6 +120,7 @@ class PredictiveAgent(ExperimenterAgent):
                                          self.action_size,
                                          self.observation_size + 1,
                                          self.learning_rate,
+                                         self.nn_hidden_size,
                                          batch_size=1)
         else:
             handle = open(self.nn_file, 'r')
@@ -157,10 +166,6 @@ class PredictiveAgent(ExperimenterAgent):
         predict_action = theano.function([input_var], action_prediction)
         predict_observ = theano.function([input_var], observ_prediction)
         predict_concat = theano.function([input_var], concat_prediction)
-
-        class Mock(object):
-            def __init__(self, **kwargs):
-                self.__dict__.update(kwargs)
 
         nnet = Mock(
             fit_action=fit_action,
