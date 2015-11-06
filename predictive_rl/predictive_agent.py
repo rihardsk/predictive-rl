@@ -118,7 +118,8 @@ class PredictiveAgent(ExperimenterAgent):
         if self.nn_file is None:
             self.nnet = self.create_nnet(self.observation_size,
                                          self.action_size,
-                                         self.observation_size + 1,
+                                         self.observation_size,
+                                         1,
                                          self.learning_rate,
                                          self.nn_hidden_size,
                                          batch_size=1)
@@ -127,7 +128,7 @@ class PredictiveAgent(ExperimenterAgent):
             self.nnet = cPickle.load(handle)
 
     @staticmethod
-    def create_nnet(input_dims, action_dims, observation_dims, learning_rate, num_hidden_units=20, batch_size=32,
+    def create_nnet(input_dims, action_dims, observation_dims, value_dims, learning_rate, num_hidden_units=20, batch_size=32,
                     max_train_epochs=1, hidden_nonlinearity=nonlinearities.rectify, output_nonlinearity=None,
                     update_method=updates.sgd):
         commonlayers = []
@@ -135,44 +136,59 @@ class PredictiveAgent(ExperimenterAgent):
         commonlayers.append(layers.DenseLayer(commonlayers[-1], num_hidden_units, nonlinearity=hidden_nonlinearity))
         actionlayers = [layers.DenseLayer(commonlayers[-1], action_dims, nonlinearity=output_nonlinearity)]
         observlayers = [layers.DenseLayer(commonlayers[-1], observation_dims, nonlinearity=output_nonlinearity)]
-        concatlayers = [layers.ConcatLayer([actionlayers[-1], observlayers[-1]])]
+        dvaluelayers = [layers.DenseLayer(commonlayers[-1], value_dims, nonlinearity=output_nonlinearity)]
+        actvallayers = [layers.ConcatLayer([actionlayers[-1], dvaluelayers[-1]])]
+        obsvallayers = [layers.ConcatLayer([observlayers[-1], dvaluelayers[-1]])]
+        concatlayers = [layers.ConcatLayer([actionlayers[-1], observlayers[-1], dvaluelayers[-1]])]
         action_prediction = layers.get_output(actionlayers[-1])
-        observ_prediction = layers.get_output(observlayers[-1])
+        dvalue_prediction = layers.get_output(dvaluelayers[-1])
+        actval_prediction = layers.get_output(actvallayers[-1])
+        obsval_prediction = layers.get_output(obsvallayers[-1])
         concat_prediction = layers.get_output(concatlayers[-1])
         input_var = commonlayers[0].input_var
-        # action_target_type = T.TensorType(floatX, [False] * action_dims)
-        # observ_target_type = T.TensorType(floatX, [False] * observation_dims)
-        # concat_target_type = T.TensorType(floatX, [False] * (action_dims + observation_dims))
-        # action_target = action_target_type()
-        # observ_target = observ_target_type()
-        # concat_target = concat_target_type()
         action_target = T.matrix(name="action_target", dtype=floatX)
+        dvalue_target = T.matrix(name="value_target", dtype=floatX)
+        actval_target = T.matrix(name="actval_target", dtype=floatX)
         observ_target = T.matrix(name="observ_target", dtype=floatX)
         concat_target = T.matrix(name="concat_target", dtype=floatX)
         action_loss = objectives.squared_error(action_prediction, action_target).mean()
-        observ_loss = objectives.squared_error(observ_prediction, observ_target).mean()
+        obsval_loss = objectives.squared_error(obsval_prediction, observ_target).mean()
+        dvalue_loss = objectives.squared_error(dvalue_prediction, dvalue_target).mean()
+        actval_loss = objectives.squared_error(actval_prediction, actval_target).mean()
         concat_loss = objectives.squared_error(concat_prediction, concat_target).mean()
         action_params = layers.get_all_params(actionlayers[-1], trainable=True)
         observ_params = layers.get_all_params(observlayers[-1], trainable=True)
+        dvalue_params = layers.get_all_params(dvaluelayers[-1], trainable=True)
+        actval_params = layers.get_all_params(actvallayers[-1], trainable=True)
         concat_params = layers.get_all_params(concatlayers[-1], trainable=True)
         action_updates = update_method(action_loss, action_params, learning_rate)
-        observ_updates = update_method(observ_loss, observ_params, learning_rate)
+        obsval_updates = update_method(obsval_loss, observ_params, learning_rate)
+        dvalue_updates = update_method(dvalue_loss, dvalue_params, learning_rate)
+        actval_updates = update_method(actval_loss, actval_params, learning_rate)
         concat_updates = update_method(concat_loss, concat_params, learning_rate)
 
         fit_action = theano.function([input_var, action_target], action_loss, updates=action_updates)
-        fit_observ = theano.function([input_var, observ_target], observ_loss, updates=observ_updates)
+        fit_obsval = theano.function([input_var, observ_target], obsval_loss, updates=obsval_updates)
+        fit_dvalue = theano.function([input_var, dvalue_target], dvalue_loss, updates=dvalue_updates)
+        fit_actval = theano.function([input_var, actval_target], actval_loss, updates=actval_updates)
         fit_concat = theano.function([input_var, concat_target], concat_loss, updates=concat_updates)
 
         predict_action = theano.function([input_var], action_prediction)
-        predict_observ = theano.function([input_var], observ_prediction)
+        predict_obsval = theano.function([input_var], obsval_prediction)
+        predict_dvalue = theano.function([input_var], dvalue_prediction)
+        predict_actval = theano.function([input_var], actval_prediction)
         predict_concat = theano.function([input_var], concat_prediction)
 
         nnet = Mock(
             fit_action=fit_action,
-            fit_observ=fit_observ,
+            fit_obsval=fit_obsval,
+            fit_value=fit_dvalue,
+            fit_actval=fit_actval,
             fit_both=fit_concat,
             predict_action=predict_action,
-            predict_observ=predict_observ,
+            predict_obsval=predict_obsval,
+            predict_value=predict_dvalue,
+            predict_actval=predict_actval,
             predict_both=predict_concat,
         )
         return nnet
@@ -210,7 +226,8 @@ class PredictiveAgent(ExperimenterAgent):
         maxranges = ranges[:, 1].T
         scale = target_amplitude
         scaled = (inputs - minranges) / (maxranges - minranges) * 2 * scale - scale
-        return np.asmatrix(scaled, dtype=floatX)
+        # return np.asmatrix(scaled, dtype=floatX)
+        return np.asmatrix(inputs, dtype=floatX)
 
     def exp_step(self, reward, observation, is_testing):
         return_action = Action()
@@ -248,10 +265,15 @@ class PredictiveAgent(ExperimenterAgent):
         mask = target_value > last_state_value
 
         if mask[0, 0]:
-            loss = self.nnet.fit_both(self.last_state, np.hstack((self.last_action, observation, target_value)))
+            if not terminal:
+                loss = self.nnet.fit_both(self.last_state, np.hstack((self.last_action, observation, target_value)))
+            else:
+                loss = self.nnet.fit_actval(self.last_state, np.hstack((self.last_action, target_value)))
         else:
-            # TODO: should not train  on action at all here
-            loss = self.nnet.fit_observ(self.last_state, np.hstack((observation, target_value)))
+            if not terminal:
+                loss = self.nnet.fit_obsval(self.last_state, np.hstack((observation, target_value)))
+            else:
+                loss = self.nnet.fit_value(self.last_state, target_value)
         self.last_state = cur_state
         self.last_action = action
         self.last_original_action = pred_action
