@@ -11,22 +11,24 @@ from rlglue.types import Action
 from rlglue.types import Observation
 from rlglue.utils import TaskSpecVRLGLUE3
 from random import Random
-#from pylearn2.models import mlp
 import time
-import lasagne
-from lasagne import layers
-from lasagne import updates
-from lasagne import nonlinearities
-import nolearn
-from nolearn.lasagne import NeuralNet
-from nolearn.lasagne import BatchIterator
 import numpy as np
 import argparse
 import os
 from experimenter_agent import ExperimenterAgent
 import theano
+import theano.tensor as T
+from lasagne import layers
+from lasagne import updates
+from lasagne import nonlinearities
+from lasagne import objectives
 
 floatX = theano.config.floatX
+
+
+class Mock(object):
+    def __init__(self, **kwargs):
+        self.__dict__.update(kwargs)
 
 
 class CaclaAgentLasagne(ExperimenterAgent):
@@ -145,27 +147,30 @@ class CaclaAgentLasagne(ExperimenterAgent):
         A subclass may override this if a different sort
         of network is desired.
         """
-        nnlayers = [('input', layers.InputLayer), ('hidden', layers.DenseLayer), ('output', layers.DenseLayer)]
-        nnet = NeuralNet(layers=nnlayers,
+        nnlayers = []
+        nnlayers.append(layers.InputLayer(shape=(None, input_dims)))
+        nnlayers.append(layers.DenseLayer(nnlayers[-1], num_hidden_units, nonlinearity=hidden_nonlinearity))
+        nnlayers.append(layers.DenseLayer(nnlayers[-1], output_dims, nonlinearity=output_nonlinearity))
 
-                           # layer parameters:
-                           input_shape=(None, input_dims),
-                           hidden_num_units=num_hidden_units,
-                           hidden_nonlinearity=hidden_nonlinearity,
-                           output_nonlinearity=output_nonlinearity,
-                           output_num_units=output_dims,
+        prediction = layers.get_output(nnlayers[-1])
 
-                           # optimization method:
-                           update=update_method,
-                           update_learning_rate=learning_rate,
+        input_var = nnlayers[0].input_var
+        target = T.matrix(name="target", dtype=floatX)
 
-                           regression=True,  # flag to indicate we're dealing with regression problem
-                           max_epochs=max_train_epochs,
-                           batch_iterator_train=BatchIterator(batch_size=batch_size),
-                           train_split=nolearn.lasagne.TrainSplit(eval_size=0),
-                           verbose=0,
-                         )
-        nnet.initialize()
+        loss = objectives.squared_error(prediction, target).mean()
+
+        params = layers.get_all_params(nnlayers[-1], trainable=True)
+
+        updates = update_method(loss, params, learning_rate)
+
+        fit = theano.function([input_var, target], loss, updates=updates)
+
+        predict = theano.function([input_var], prediction)
+
+        nnet = Mock(
+            fit=fit,
+            predict=predict,
+        )
         return nnet
 
     def agent_start(self, observation):
@@ -226,8 +231,7 @@ class CaclaAgentLasagne(ExperimenterAgent):
         mask = target_value > last_state_value
 
         if mask[0, 0]:
-            net = self.action_network.fit(self.last_state, self.last_action)
-            loss = net.train_history_[-1]['train_loss']
+            loss = self.action_network.fit(self.last_state, self.last_action)
         else:
             loss = None
         self.last_state = cur_state
