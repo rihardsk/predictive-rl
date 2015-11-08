@@ -14,6 +14,8 @@ from lasagne import layers
 from lasagne import updates
 from lasagne import nonlinearities
 from lasagne import objectives
+from lasagne.regularization import regularize_layer_params_weighted, l2, l1
+from lasagne.regularization import regularize_layer_params
 import nolearn
 from nolearn.lasagne import NeuralNet
 from nolearn.lasagne import BatchIterator
@@ -49,11 +51,15 @@ class PredictiveAgent(ExperimenterAgent):
         self._get_parsed_args(args)
 
     def _add_parse_args(self, parser):
-        parser.add_argument('--learning_rate', type=float, default=.01,
+        parser.add_argument('--learning_rate', type=float, default=.001,
                             help='Learning rate')
-        parser.add_argument('--action_stdev', type=float, default=0.1,
+        parser.add_argument('--action_stdev', type=float, default=1,
                             help='Action space exploration standard deviation for Gaussian distribution. '
                                  'Applied to action range.')
+        parser.add_argument('--l1_weight', type=float, default=None,
+                            help='L1 regularization weight.')
+        parser.add_argument('--l2_weight', type=float, default=None,
+                            help='L2 regularization weight.')
         # parser.add_argument('--noise_stdev', type=float, default=0.01,
         #                     help='Action space exploration standard deviation for Gaussian distribution. '
         #                          'Applied to the actions magnitude.')
@@ -61,7 +67,7 @@ class PredictiveAgent(ExperimenterAgent):
                             help='Directory to save results')
         parser.add_argument('--nn_file', type=str, default=None,
                             help='Pickle file containing trained neural net.')
-        parser.add_argument('--nn_hidden_size', type=int, default=20,
+        parser.add_argument('--nn_hidden_size', type=int, default=30,
                             help='Neural net\'s hidden layer size')
         parser.add_argument('--collect_rewards', type=bool, default=True,
                             help='If set to true, testing episode mean rewards will be saved to a file.')
@@ -116,21 +122,21 @@ class PredictiveAgent(ExperimenterAgent):
 
     def _init_network(self):
         if self.nn_file is None:
-            self.nnet = self.create_nnet(self.observation_size,
-                                         self.action_size,
-                                         self.observation_size,
-                                         1,
-                                         self.learning_rate,
-                                         self.nn_hidden_size,
+            self.nnet = self.create_nnet(input_dims=self.observation_size,
+                                         action_dims=self.action_size,
+                                         observation_dims=self.observation_size,
+                                         value_dims=1,
+                                         learning_rate=self.learning_rate,
+                                         num_hidden_units=self.nn_hidden_size,
                                          batch_size=1)
         else:
             handle = open(self.nn_file, 'r')
             self.nnet = cPickle.load(handle)
 
     @staticmethod
-    def create_nnet(input_dims, action_dims, observation_dims, value_dims, learning_rate, num_hidden_units=20, batch_size=32,
-                    max_train_epochs=1, hidden_nonlinearity=nonlinearities.rectify, output_nonlinearity=None,
-                    update_method=updates.sgd):
+    def create_nnet(input_dims, action_dims, observation_dims, value_dims, learning_rate, l1_weight=None, l2_weight=None,
+                    num_hidden_units=20, batch_size=32, max_train_epochs=1, hidden_nonlinearity=nonlinearities.rectify,
+                    output_nonlinearity=None, update_method=updates.sgd):
         commonlayers = []
         commonlayers.append(layers.InputLayer(shape=(None, input_dims)))
         commonlayers.append(layers.DenseLayer(commonlayers[-1], num_hidden_units, nonlinearity=hidden_nonlinearity))
@@ -156,6 +162,28 @@ class PredictiveAgent(ExperimenterAgent):
         dvalue_loss = objectives.squared_error(dvalue_prediction, dvalue_target).mean()
         actval_loss = objectives.squared_error(actval_prediction, actval_target).mean()
         concat_loss = objectives.squared_error(concat_prediction, concat_target).mean()
+        if l1_weight is not None:
+            action_l1penalty = regularize_layer_params(commonlayers + actionlayers, l1) * l1_weight
+            obsval_l1penalty = regularize_layer_params(commonlayers + observlayers + dvaluelayers, l1) * l1_weight
+            dvalue_l1penalty = regularize_layer_params(commonlayers + dvaluelayers, l1) * l2_weight
+            actval_l1penalty = regularize_layer_params(commonlayers + actionlayers + dvaluelayers, l1) * l1_weight
+            concat_l1penalty = regularize_layer_params(commonlayers + actionlayers + observlayers + dvaluelayers, l1) * l1_weight
+            action_loss += action_l1penalty
+            obsval_loss += obsval_l1penalty
+            dvalue_loss += dvalue_l1penalty
+            actval_loss += actval_l1penalty
+            concat_loss += concat_l1penalty
+        if l2_weight is not None:
+            action_l2penalty = regularize_layer_params(commonlayers + actionlayers, l2) * l2_weight
+            obsval_l2penalty = regularize_layer_params(commonlayers + observlayers + dvaluelayers, l2) * l2_weight
+            dvalue_l2penalty = regularize_layer_params(commonlayers + dvaluelayers, l2) * l2_weight
+            actval_l2penalty = regularize_layer_params(commonlayers + actionlayers + dvaluelayers, l2) * l2_weight
+            concat_l2penalty = regularize_layer_params(commonlayers + actionlayers + observlayers + dvaluelayers, l2) * l2_weight
+            action_loss += action_l2penalty
+            obsval_loss += obsval_l2penalty
+            dvalue_loss += dvalue_l2penalty
+            actval_loss += actval_l2penalty
+            concat_loss += concat_l2penalty
         action_params = layers.get_all_params(actionlayers[-1], trainable=True)
         observ_params = layers.get_all_params(observlayers[-1], trainable=True)
         dvalue_params = layers.get_all_params(dvaluelayers[-1], trainable=True)
