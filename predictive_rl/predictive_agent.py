@@ -74,6 +74,8 @@ class PredictiveAgent(ExperimenterAgent):
 
     def _get_parsed_args(self, args):
         self.learning_rate = args.learning_rate
+        self.l1_weight = args.l1_weight
+        self.l2_weight = args.l2_weight
         self.exp_dir = args.dir
         self.nn_file = args.nn_file
         self.nn_hidden_size = args.nn_hidden_size
@@ -127,6 +129,8 @@ class PredictiveAgent(ExperimenterAgent):
                                          observation_dims=self.observation_size,
                                          value_dims=1,
                                          learning_rate=self.learning_rate,
+                                         l1_weight=self.l1_weight,
+                                         l2_weight=self.l2_weight,
                                          num_hidden_units=self.nn_hidden_size,
                                          batch_size=1)
         else:
