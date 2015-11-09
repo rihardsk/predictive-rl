@@ -67,8 +67,14 @@ class PredictiveAgent(ExperimenterAgent):
                             help='Directory to save results')
         parser.add_argument('--nn_file', type=str, default=None,
                             help='Pickle file containing trained neural net.')
-        parser.add_argument('--nn_hidden_size', type=int, default=30,
-                            help='Neural net\'s hidden layer size')
+        parser.add_argument('--nn_hidden_size', type=int, default=20,
+                            help='Neural net\'s layer hidden size')
+        parser.add_argument('--nn_hidden_action_size', type=int, default=None,
+                            help='Neural net\'s hidden action layer size')
+        parser.add_argument('--nn_hidden_observ_size', type=int, default=None,
+                            help='Neural net\'s hidden observation layer size')
+        parser.add_argument('--nn_hidden_value_size', type=int, default=None,
+                            help='Neural net\'s hidden value layer size')
         parser.add_argument('--collect_rewards', type=bool, default=True,
                             help='If set to true, testing episode mean rewards will be saved to a file.')
         parser.add_argument('--testing', type=bool, default=False,
@@ -81,6 +87,9 @@ class PredictiveAgent(ExperimenterAgent):
         self.exp_dir = args.dir
         self.nn_file = args.nn_file
         self.nn_hidden_size = args.nn_hidden_size
+        self.nn_hidden_action_size = args.nn_hidden_action_size
+        self.nn_hidden_observ_size = args.nn_hidden_observ_size
+        self.nn_hidden_value_size = args.nn_hidden_value_size
         self.action_stdev = args.action_stdev
         # self.noise_stdev = args.noise_stdev
         self.collect_rewards = args.collect_rewards
@@ -135,6 +144,9 @@ class PredictiveAgent(ExperimenterAgent):
                                          l1_weight=self.l1_weight,
                                          l2_weight=self.l2_weight,
                                          num_hidden_units=self.nn_hidden_size,
+                                         num_hidden_action_units=self.nn_hidden_action_size,
+                                         num_hidden_observ_units=self.nn_hidden_observ_size,
+                                         num_hidden_value_units=self.nn_hidden_value_size,
                                          batch_size=1)
         else:
             handle = open(self.nn_file, 'r')
@@ -142,14 +154,27 @@ class PredictiveAgent(ExperimenterAgent):
 
     @staticmethod
     def create_nnet(input_dims, action_dims, observation_dims, value_dims, learning_rate, l1_weight=None, l2_weight=None,
-                    num_hidden_units=20, batch_size=32, max_train_epochs=1, hidden_nonlinearity=nonlinearities.rectify,
+                    num_hidden_units=20, num_hidden_action_units=None, num_hidden_observ_units=None, num_hidden_value_units=None,
+                    batch_size=32, max_train_epochs=1, hidden_nonlinearity=nonlinearities.rectify,
                     output_nonlinearity=None, update_method=updates.sgd):
         commonlayers = []
         commonlayers.append(layers.InputLayer(shape=(None, input_dims)))
         commonlayers.append(layers.DenseLayer(commonlayers[-1], num_hidden_units, nonlinearity=hidden_nonlinearity))
-        actionlayers = [layers.DenseLayer(commonlayers[-1], action_dims, nonlinearity=output_nonlinearity)]
-        observlayers = [layers.DenseLayer(commonlayers[-1], observation_dims, nonlinearity=output_nonlinearity)]
-        dvaluelayers = [layers.DenseLayer(commonlayers[-1], value_dims, nonlinearity=output_nonlinearity)]
+        if num_hidden_action_units is None:
+            actionlayers = [layers.DenseLayer(commonlayers[-1], action_dims, nonlinearity=output_nonlinearity)]
+        else:
+            actionlayers = [layers.DenseLayer(commonlayers[-1], num_hidden_action_units, nonlinearity=output_nonlinearity)]
+            actionlayers.append(layers.DenseLayer(actionlayers[-1], action_dims, nonlinearity=output_nonlinearity))
+        if num_hidden_observ_units is None:
+            observlayers = [layers.DenseLayer(commonlayers[-1], observation_dims, nonlinearity=output_nonlinearity)]
+        else:
+            observlayers = [layers.DenseLayer(commonlayers[-1], num_hidden_observ_units, nonlinearity=output_nonlinearity)]
+            observlayers.append(layers.DenseLayer(observlayers[-1], observation_dims, nonlinearity=output_nonlinearity))
+        if num_hidden_value_units is None:
+            dvaluelayers = [layers.DenseLayer(commonlayers[-1], value_dims, nonlinearity=output_nonlinearity)]
+        else:
+            dvaluelayers = [layers.DenseLayer(commonlayers[-1], num_hidden_value_units, nonlinearity=output_nonlinearity)]
+            dvaluelayers.append(layers.DenseLayer(dvaluelayers[-1], value_dims, nonlinearity=output_nonlinearity))
         actvallayers = [layers.ConcatLayer([actionlayers[-1], dvaluelayers[-1]])]
         obsvallayers = [layers.ConcatLayer([observlayers[-1], dvaluelayers[-1]])]
         concatlayers = [layers.ConcatLayer([actionlayers[-1], observlayers[-1], dvaluelayers[-1]])]
