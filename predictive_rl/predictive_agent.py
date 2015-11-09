@@ -71,6 +71,8 @@ class PredictiveAgent(ExperimenterAgent):
                             help='Neural net\'s hidden layer size')
         parser.add_argument('--collect_rewards', type=bool, default=True,
                             help='If set to true, testing episode mean rewards will be saved to a file.')
+        parser.add_argument('--testing', type=bool, default=False,
+                            help='Set true to disable learning and exploration.')
 
     def _get_parsed_args(self, args):
         self.learning_rate = args.learning_rate
@@ -82,6 +84,7 @@ class PredictiveAgent(ExperimenterAgent):
         self.action_stdev = args.action_stdev
         # self.noise_stdev = args.noise_stdev
         self.collect_rewards = args.collect_rewards
+        self.testing = args.testing
 
     def agent_init(self, taskSpecification):
         """
@@ -120,7 +123,7 @@ class PredictiveAgent(ExperimenterAgent):
 
         self.action_ranges = np.asmatrix(self.action_ranges, dtype=floatX)
         self.observation_ranges = np.asmatrix(self.observation_ranges, dtype=floatX)
-        self.testing = False
+        # self.testing = False
 
     def _init_network(self):
         if self.nn_file is None:
@@ -169,7 +172,7 @@ class PredictiveAgent(ExperimenterAgent):
         if l1_weight is not None:
             action_l1penalty = regularize_layer_params(commonlayers + actionlayers, l1) * l1_weight
             obsval_l1penalty = regularize_layer_params(commonlayers + observlayers + dvaluelayers, l1) * l1_weight
-            dvalue_l1penalty = regularize_layer_params(commonlayers + dvaluelayers, l1) * l2_weight
+            dvalue_l1penalty = regularize_layer_params(commonlayers + dvaluelayers, l1) * l1_weight
             actval_l1penalty = regularize_layer_params(commonlayers + actionlayers + dvaluelayers, l1) * l1_weight
             concat_l1penalty = regularize_layer_params(commonlayers + actionlayers + observlayers + dvaluelayers, l1) * l1_weight
             action_loss += action_l1penalty
