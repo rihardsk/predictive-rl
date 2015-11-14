@@ -79,6 +79,10 @@ class PredictiveAgent(ExperimenterAgent):
                             help='If set to true, testing episode mean rewards will be saved to a file.')
         parser.add_argument('--testing', type=bool, default=False,
                             help='Set true to disable learning and exploration.')
+        parser.add_argument('--activation', type=str, default='rectify',
+                            help='The hidden layer activation function')
+        parser.add_argument('--scale_range', type=float, default=None,
+                            help='The range to scale the inputs in when preprocessing.')
 
     def _get_parsed_args(self, args):
         self.learning_rate = args.learning_rate
@@ -94,6 +98,13 @@ class PredictiveAgent(ExperimenterAgent):
         # self.noise_stdev = args.noise_stdev
         self.collect_rewards = args.collect_rewards
         self.testing = args.testing
+        self.scale_range = args.scale_range
+        if args.activation == "rectify":
+            self.activation = nonlinearities.rectify
+        elif args.activation == "tanh":
+            self.activation = nonlinearities.tanh
+        elif args.activation == "sigmoid":
+            self.activation = nonlinearities.sigmoid
 
     def agent_init(self, taskSpecification):
         """
@@ -147,6 +158,7 @@ class PredictiveAgent(ExperimenterAgent):
                                          num_hidden_action_units=self.nn_hidden_action_size,
                                          num_hidden_observ_units=self.nn_hidden_observ_size,
                                          num_hidden_value_units=self.nn_hidden_value_size,
+                                         hidden_nonlinearity=self.activation,
                                          batch_size=1)
         else:
             handle = open(self.nn_file, 'r')
@@ -286,12 +298,13 @@ class PredictiveAgent(ExperimenterAgent):
         maxranges = ranges[:, 1].T
         scale = target_amplitude
         scaled = (inputs - minranges) / (maxranges - minranges) * 2 * scale - scale
-        # return np.asmatrix(scaled, dtype=floatX)
-        return np.asmatrix(inputs, dtype=floatX)
+        return np.asmatrix(scaled, dtype=floatX)
 
     def exp_step(self, reward, observation, is_testing):
         return_action = Action()
-        cur_observation = self._scale_inputs(observation.doubleArray, self.observation_ranges)
+        cur_ovservation = np.asmatrix(observation.doubleArray, dtype=floatX)
+        if self.scale_range is not None:
+            cur_observation = self._scale_inputs(cur_ovservation, self.observation_ranges, self.scale_range)
         pred_action, pred_observation, cur_observation_value = self._predict(cur_observation)
         double_action = self._explore(pred_action, self.action_stdev)
         loss = None
