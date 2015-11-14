@@ -13,6 +13,29 @@ from lasagne import nonlinearities
 floatX = theano.config.floatX
 
 
+class MockNnet(object):
+    def __init__(self, nn_act, nn_val, action_dims):
+        self.nn_act = nn_act
+        self.nn_val = nn_val
+        self.action_dims = action_dims
+        self.fit_action = nn_act.fit
+        self.fit_value = nn_val.fit
+        self.predict_action = nn_act.predict
+        self.predict_value = nn_val.predict
+
+    def fit_both(self, state, action_and_value):
+        action = action_and_value[:,0:self.action_dims]
+        value = action_and_value[:,self.action_dims:]
+        action_loss = self.nn_act.fit(state, action)
+        value_loss = self.nn_val.fit(state, value)
+        return (action_loss + value_loss) / 2.
+
+    def predict_both(self, state):
+        action = self.nn_act.predict(state)
+        value = self.nn_val.predict(state)
+        return np.hstack((action, value))
+
+
 class PredictiveMockAgent(PredictiveAgent):
     randGenerator = np.random
 
@@ -55,25 +78,11 @@ class PredictiveMockAgent(PredictiveAgent):
         nn_act = cal._create_nnet(input_dims, action_dims, learning_rate, num_hidden_units, batch_size, max_train_epochs,
                                   hidden_nonlinearity, output_nonlinearity, update_method)
 
-        def fit_both(state, action_and_value):
-            action = action_and_value[:,0:action_dims]
-            value = action_and_value[:,action_dims:]
-            action_loss = nn_act.fit(state, action)
-            value_loss = nn_val.fit(state, value)
-            return (action_loss + value_loss) / 2.
 
-        def predict_both(state):
-            action = nn_act.predict(state)
-            value = nn_val.predict(state)
-            return np.hstack((action, value))
-
-        nnet = Mock(
-            fit_action=nn_act.fit,
-            fit_value=nn_val.fit,
-            fit_both=fit_both,
-            predict_action=nn_act.predict,
-            predict_value=nn_val.predict,
-            predict_both=predict_both,
+        nnet = MockNnet(
+            nn_act,
+            nn_val,
+            action_dims,
         )
         return nnet
 
