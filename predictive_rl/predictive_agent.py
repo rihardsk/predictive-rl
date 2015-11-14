@@ -300,6 +300,22 @@ class PredictiveAgent(ExperimenterAgent):
         scaled = (inputs - minranges) / (maxranges - minranges) * 2 * scale - scale
         return np.asmatrix(scaled, dtype=floatX)
 
+    @staticmethod
+    def _scale_outputs(ouputs, ranges, source_amplitude=1):
+        """
+        Scale the outputs back to the original amplitude.
+        :param ouputs:
+        :param ranges:
+        :param source_amplitude:
+        :return:
+        """
+        minranges = ranges[:, 0].T
+        maxranges = ranges[:, 1].T
+        scale = source_amplitude
+        # scaled = (inputs - minranges) / (maxranges - minranges) * 2 * scale - scale
+        scaled_back = (ouputs + scale) * (maxranges - minranges) / (2 * scale) + minranges
+        return np.asmatrix(scaled_back, dtype=floatX)
+
     def exp_step(self, reward, observation, is_testing):
         return_action = Action()
         cur_ovservation = np.asmatrix(observation.doubleArray, dtype=floatX)
