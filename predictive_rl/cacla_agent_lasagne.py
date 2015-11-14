@@ -141,7 +141,8 @@ class CaclaAgentLasagne(ExperimenterAgent):
             handle = open(self.nn_action_file, 'r')
             self.action_network = cPickle.load(handle)
 
-    def _create_nnet(self, input_dims, output_dims, learning_rate, num_hidden_units=15, batch_size=32, max_train_epochs=1,
+    @staticmethod
+    def _create_nnet(input_dims, output_dims, learning_rate, num_hidden_units=15, batch_size=32, max_train_epochs=1,
                      hidden_nonlinearity=nonlinearities.rectify, output_nonlinearity=None, update_method=updates.sgd):
         """
         A subclass may override this if a different sort
