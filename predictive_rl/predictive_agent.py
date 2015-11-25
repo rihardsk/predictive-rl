@@ -51,29 +51,29 @@ class PredictiveAgent(ExperimenterAgent):
         self._get_parsed_args(args)
 
     def _add_parse_args(self, parser):
-        parser.add_argument('--learning_rate', type=float, default=.001,
+        parser.add_argument('-r', '--learning_rate', type=float, default=.001,
                             help='Learning rate')
-        parser.add_argument('--action_stdev', type=float, default=1,
+        parser.add_argument('-s', '--action_stdev', type=float, default=1,
                             help='Action space exploration standard deviation for Gaussian distribution. '
                                  'Applied to action range.')
-        parser.add_argument('--l1_weight', type=float, default=None,
+        parser.add_argument('-l1', '--l1_weight', type=float, default=None,
                             help='L1 regularization weight.')
-        parser.add_argument('--l2_weight', type=float, default=None,
+        parser.add_argument('-l2', '--l2_weight', type=float, default=None,
                             help='L2 regularization weight.')
         # parser.add_argument('--noise_stdev', type=float, default=0.01,
         #                     help='Action space exploration standard deviation for Gaussian distribution. '
         #                          'Applied to the actions magnitude.')
-        parser.add_argument('--dir', type=str, default="experiments_replay",
+        parser.add_argument('-d', '--dir', type=str, default="experiments_replay",
                             help='Directory to save results')
-        parser.add_argument('--nn_file', type=str, default=None,
+        parser.add_argument('-f', '--nn_file', type=str, default=None,
                             help='Pickle file containing trained neural net.')
-        parser.add_argument('--nn_hidden_size', type=int, default=20,
+        parser.add_argument('-hs', '--nn_hidden_size', type=int, default=20,
                             help='Neural net\'s layer hidden size')
-        parser.add_argument('--nn_hidden_action_size', type=int, default=None,
+        parser.add_argument('-as', '--nn_hidden_action_size', type=int, default=None,
                             help='Neural net\'s hidden action layer size')
-        parser.add_argument('--nn_hidden_observ_size', type=int, default=None,
+        parser.add_argument('-os', '--nn_hidden_observ_size', type=int, default=None,
                             help='Neural net\'s hidden observation layer size')
-        parser.add_argument('--nn_hidden_value_size', type=int, default=None,
+        parser.add_argument('-vs', '--nn_hidden_value_size', type=int, default=None,
                             help='Neural net\'s hidden value layer size')
         parser.add_argument('--collect_rewards', type=bool, default=True,
                             help='If set to true, testing episode mean rewards will be saved to a file.')

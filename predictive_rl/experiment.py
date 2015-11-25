@@ -77,15 +77,15 @@ def main():
     """
 
     parser = argparse.ArgumentParser(description='Neural rl experiment.')
-    parser.add_argument('--num_epochs', type=int, default=100,
+    parser.add_argument('-e', '--num_epochs', type=int, default=100,
                         help='Number of training epochs')
-    parser.add_argument('--epoch_length', type=int, default=50000,
+    parser.add_argument('-l', '--epoch_length', type=int, default=50000,
                         help='Number of steps per epoch')
-    parser.add_argument('--test_length', type=int, default=10000,
+    parser.add_argument('-t', '--test_length', type=int, default=10000,
                         help='Number of steps per test')
-    parser.add_argument('--dir', type=str, default='results',
+    parser.add_argument('-d', '--dir', type=str, default='results',
                         help='Directory to save results')
-    parser.add_argument('--agent_suffix', type=str, default='',
+    parser.add_argument('-s', '--agent_suffix', type=str, default='',
                         help='Agent specific suffix to append to the results dir name')
     parser.add_argument('--collect_rewards', type=bool, default=False,
                         help='If set to true, testing episode mean rewards will be saved to a file. \
