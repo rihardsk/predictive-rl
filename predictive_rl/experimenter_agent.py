@@ -25,6 +25,7 @@ class ExperimenterAgent(object, Agent):
         self.exp_dir = ""
         self.learning_file = None
         self.results_file = None
+        self.onresults_file = None
         self.learning_file_header = "epoch,loss"
         self.results_file_header = "epoch,episodes,total_reward,mean_reward"
         self.collect_rewards = True
@@ -37,9 +38,9 @@ class ExperimenterAgent(object, Agent):
 
     def agent_step(self, reward, observation):
         # self.step_counter += 1
+        if self.collect_rewards:
+            self.epoch_rewards.append(reward)
         if self.testing:
-            if self.collect_rewards:
-                self.epoch_rewards.append(reward)
             action = self.exp_step(reward, observation, self.testing)
         else:
             action, loss = self.exp_step(reward, observation, self.testing)
@@ -51,7 +52,7 @@ class ExperimenterAgent(object, Agent):
         loss = self.exp_end(reward, self.testing)
         if not self.testing and loss is not None:
             self.epoch_losses.append(loss)
-        elif self.testing and reward is not None:
+        if reward is not None and self.collect_rewards:
             self.epoch_rewards.append(reward)
 
     def agent_cleanup(self):
@@ -77,6 +78,9 @@ class ExperimenterAgent(object, Agent):
             self.save_agent(epoch)
             self.save_losses(epoch, self.epoch_losses)
             self.epoch_losses = []
+            if self.collect_rewards:
+                self.save_results(epoch, self.epoch_rewards, onresults=True)
+                self.epoch_rewards = []
 
         elif params[0] == "start_testing":
             self.testing = True
@@ -111,17 +115,30 @@ class ExperimenterAgent(object, Agent):
         self.results_file = open(os.path.join(dir_name, 'results.csv'), 'w', 0)
         self.results_file.write(self.results_file_header + '\n')
 
+    def open_onresults_file(self, dir_name):
+        try:
+            os.stat(dir_name)
+        except:
+            os.makedirs(dir_name)
+        self.onresults_file = open(os.path.join(dir_name, 'onresults.csv'), 'w', 0)
+        self.onresults_file.write(self.results_file_header + '\n')
+
     def save_losses(self, epoch, losses):
         if self.learning_file is None:
             self.open_learning_file(self.exp_dir)
         out = "{},{}\n".format(epoch, np.mean(losses))
         self.learning_file.write(out)
 
-    def save_results(self, epoch, rewards):
-        if self.results_file is None:
+    def save_results(self, epoch, rewards, onresults=False):
+        if not onresults and self.results_file is None:
             self.open_results_file(self.exp_dir)
+        if onresults and self.results_file is None:
+            self.open_onresults_file(self.exp_dir)
         out = "{},{},{},{}\n".format(epoch, len(rewards), np.sum(rewards), np.mean(rewards))
-        self.results_file.write(out)
+        if onresults:
+            self.onresults_file.write(out)
+        else:
+            self.results_file.write(out)
 
     @abstractmethod
     def save_agent(self, epoch):

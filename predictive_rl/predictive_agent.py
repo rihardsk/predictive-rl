@@ -318,9 +318,9 @@ class PredictiveAgent(ExperimenterAgent):
 
     def exp_step(self, reward, observation, is_testing):
         return_action = Action()
-        cur_ovservation = np.asmatrix(observation.doubleArray, dtype=floatX)
+        cur_observation = np.asmatrix(observation.doubleArray, dtype=floatX)
         if self.scale_range is not None:
-            cur_observation = self._scale_inputs(cur_ovservation, self.observation_ranges, self.scale_range)
+            cur_observation = self._scale_inputs(cur_observation, self.observation_ranges, self.scale_range)
         pred_action, pred_observation, cur_observation_value = self._predict(cur_observation)
         double_action = self._explore(pred_action, self.action_stdev)
         loss = None
