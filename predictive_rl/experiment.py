@@ -87,14 +87,16 @@ def main():
                         help='Directory to save results')
     parser.add_argument('-s', '--agent_suffix', type=str, default='',
                         help='Agent specific suffix to append to the results dir name')
+    parser.add_argument('-p', '--agent_prefix', type=str, default='',
+                        help='Agent specific prefix to prepend to the results dir name')
     parser.add_argument('--collect_rewards', type=bool, default=False,
                         help='If set to true, testing episode mean rewards will be saved to a file. \
                               In general this leads to testing epochs being longer than usual.')
 
     args = parser.parse_args()
 
-    time_str = time.strftime("%m-%d-%H-%M_", time.gmtime())
-    experiment_dir = os.path.join(args.dir, time_str + args.agent_suffix)
+    time_str = time.strftime("_%m-%d-%H-%M_", time.gmtime())
+    experiment_dir = os.path.join(args.dir, args.agent_prefix + time_str + args.agent_suffix)
 
     try:
         os.stat(experiment_dir)
