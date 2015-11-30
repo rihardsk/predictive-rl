@@ -18,13 +18,13 @@ class Mock(object):
 class PredictiveFutureAgent(PredictiveAgent):
     randGenerator = np.random
 
-    def __init__(self):
+    def __init__(self, **kwargs):
         """
         Mostly just read command line arguments here. We do this here
         instead of agent_init to make it possible to use --help from
         the command line without starting an experiment.
         """
-        super(PredictiveFutureAgent, self).__init__()
+        super(PredictiveFutureAgent, self).__init__(**kwargs)
 
     def agent_start(self, observation):
         """

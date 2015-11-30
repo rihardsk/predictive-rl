@@ -32,7 +32,7 @@ class Mock(object):
 class PredictiveAgent(ExperimenterAgent):
     randGenerator = np.random
 
-    def __init__(self):
+    def __init__(self, **kwargs):
         """
         Mostly just read command line arguments here. We do this here
         instead of agent_init to make it possible to use --help from
@@ -47,7 +47,11 @@ class PredictiveAgent(ExperimenterAgent):
         # Create instance variables directy from the arguments:
         # parser.parse_known_args(namespace=self)
 
-        args = parser.parse_args()
+        if len(kwargs) == 0:
+            args = parser.parse_args()
+        else:
+            ns = argparse.Namespace(**kwargs)
+            args = parser.parse_args([], ns)
         self._get_parsed_args(args)
 
     def _add_parse_args(self, parser):
@@ -408,6 +412,9 @@ class PredictiveAgent(ExperimenterAgent):
                                    '.pkl'), 'w')
             cPickle.dump(self.nnet, net_file, -1)
             net_file.close()
+
+    def run_agent(self):
+        AgentLoader.loadAgent(self)
 
 
 def main():
