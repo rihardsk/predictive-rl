@@ -92,7 +92,7 @@ class RLExperiment(object):
         results_file.write('epoch,num_episodes,total_reward,reward_per_epoch\n')
         return results_file
 
-    def main(self):
+    def run(self):
         """
         Run the desired number of training epochs, a testing epoch
         is conducted after each training epoch.
@@ -133,4 +133,4 @@ class RLExperiment(object):
 
 if __name__ == "__main__":
     exp = RLExperiment()
-    exp.main()
+    exp.run()
