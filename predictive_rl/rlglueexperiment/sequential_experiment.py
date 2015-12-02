@@ -57,6 +57,11 @@ class SequentialExperiment(object):
         for proc in self.processes:
             proc.join()
 
+    @staticmethod
+    def parse_config_file(filename):
+        f = open(filename)
+
+
 
 def main():
     # rc = Client()
