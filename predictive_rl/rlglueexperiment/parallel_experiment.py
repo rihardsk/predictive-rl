@@ -3,8 +3,8 @@ import subprocess
 import shlex
 import atexit
 from multiprocessing import Process
-from predictive_future_agent import PredictiveFutureAgent as pfe
-from experiment import RLExperiment
+from predictive_rl.predictive_future_agent import PredictiveFutureAgent as pfe
+from predictive_rl.experiment import RLExperiment
 import os
 
 
