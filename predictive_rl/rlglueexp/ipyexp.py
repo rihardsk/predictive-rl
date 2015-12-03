@@ -5,7 +5,7 @@ import argparse
 class IPythonExperiment(object):
     dview = Client()[:]
     with dview.sync_imports():
-        import predictive_rl.rlglueexp.sequential_experiment
+        import predictive_rl.rlglueexp.seqexp
 
 
     @staticmethod
