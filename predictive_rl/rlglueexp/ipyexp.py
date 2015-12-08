@@ -1,5 +1,5 @@
 from ipyparallel import Client
-import argparse
+import predictive_rl.rlglueexp.seqexp
 
 
 class IPythonExperiment(object):
@@ -10,8 +10,8 @@ class IPythonExperiment(object):
 
     @staticmethod
     @dview.parallel
-    def run_and_wait_parallel(args):
-        seqexp = predictive_rl.rlglueexperiment.sequential_experiment.SequentialExperiment()
+    def run(args):
+        seqexp = predictive_rl.rlglueexp.seqexp.SequentialExperiment()
         rlglue_port, agent_args, exp_args = args
         return seqexp.run_and_wait(rlglue_port, agent_args, exp_args)
 
@@ -19,7 +19,7 @@ class IPythonExperiment(object):
 def main():
     # parser = argparse.ArgumentParser(description="Run parallel experiments using ipython as defined in a config file.")
     ipyexp = IPythonExperiment()
-    ipyexp.run_and_wait_parallel([(4090, {"action_stdev": 5}, {"dir": "test3"}), (4091, {"action_stdev": 1}, {"dir": "test3"})])
+    ipyexp.run([(4090, {"action_stdev": 5}, {"dir": "test3"}), (4091, {"action_stdev": 1}, {"dir": "test3"})])
 
 
 if __name__ == "__main__":

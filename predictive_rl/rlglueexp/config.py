@@ -1,17 +1,34 @@
-import ConfigParser
+from configobj import ConfigObj
+import insertjob
+from ipyexp import IPythonExperiment
 
 
 def parse(configfilename):
-    # if isinstance(configfile, file):
-    #     text = configfile.read()
-    # else:
-    #     with open(configfile) as f:
-    #         text = f.read()
-    parser = ConfigParser.SafeConfigParser()
-    parser.read(configfilename)
+    config = ConfigObj(configfilename)
+    starting_port = config.get("starting_port")
 
-    configdict = {kat: {opt: val for opt, val in parser.items(kat)} for kat in parser.sections()}
-    return configdict
+    def getexpargs():
+        for i, sname in enumerate(config.sections):
+            section = config[sname]
+            if section.get("rlglue_port") is None:
+                section["rlglue_port"] = starting_port + i
+            yield section
+
+    sectionset = set(config.sections)
+    jobargs = {k: v for k, v in config.iteritems() if k not in sectionset}
+
+    return list(getexpargs()), jobargs
+
+
+def run_jobexp(configfilename):
+    return insertjob.insert_jobexp(*parse(configfilename))
+
+
+def run_ipyexp(configfilename):
+    exp = IPythonExperiment()
+    expargs, jobargs = parse(configfilename)
+    ipyargs = [(v["rlglue_port"], v["agent_args"], v["exp_args"]) for v in expargs]
+    exp.run(ipyargs)
 
 
 if __name__ == "__main__":
