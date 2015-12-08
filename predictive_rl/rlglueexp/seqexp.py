@@ -1,6 +1,4 @@
-from ipyparallel import Client
 import subprocess
-import shlex
 import atexit
 from multiprocessing import Process
 from predictive_rl.predictive_future_agent import PredictiveFutureAgent as pfe
