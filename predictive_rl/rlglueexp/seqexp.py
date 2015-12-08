@@ -6,6 +6,7 @@ from multiprocessing import Process
 from predictive_rl.predictive_future_agent import PredictiveFutureAgent as pfe
 from predictive_rl.experiment import RLExperiment
 import os
+import sys
 
 
 class SequentialExperiment(object):
@@ -26,10 +27,14 @@ class SequentialExperiment(object):
 
     def run_env(self, rlglue_port):
         env_command = "RLGLUE_PORT={0} java -jar /home/rihards/Programming/Multi/rl/rl-library/rl-library/products/CartPole.jar".format(rlglue_port)
+        sys.stderr.write("running:\n")
+        sys.stderr.write("\t"+env_command + "\n")
         self.subprocesses.add(subprocess.Popen(env_command, shell=True))
 
     def run_rlglue(self, rlglue_port):
         glue_command = "RLGLUE_PORT={0} rl_glue".format(rlglue_port)
+        sys.stderr.write("running:\n")
+        sys.stderr.write("\t" + glue_command + "\n")
         self.subprocesses.add(subprocess.Popen(glue_command, shell=True))
 
     def run_agent(self, rlglue_port, agent_args):
@@ -37,6 +42,7 @@ class SequentialExperiment(object):
         agent = pfe(**agent_args)
         proc = Process(target=agent.run)
         self.processes.add(proc)
+        sys.stderr.write("running agent" + "\n")
         proc.start()
 
     def run_experiment(self, rlglue_port, exp_args):
@@ -44,6 +50,7 @@ class SequentialExperiment(object):
         exp = RLExperiment(**exp_args)
         proc = Process(target=exp.run)
         self.processes.add(proc)
+        sys.stderr.write("running experiment" + "\n")
         proc.start()
 
     def run_and_wait(self, rlglue_port, agent_args, exp_args):
