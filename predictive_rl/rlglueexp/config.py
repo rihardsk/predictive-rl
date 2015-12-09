@@ -1,11 +1,12 @@
 from configobj import ConfigObj
 import insertjob
-from ipyexp import IPythonExperiment
 
 
 def parse(configfilename):
     config = ConfigObj(configfilename)
     starting_port = config.get("starting_port")
+    if starting_port is not None:
+        starting_port = int(starting_port)
 
     def getexpargs():
         for i, sname in enumerate(config.sections):
@@ -25,12 +26,16 @@ def run_jobexp(configfilename):
 
 
 def run_ipyexp(configfilename):
-    exp = IPythonExperiment()
+    import predictive_rl.rlglueexp.ipyexp
     expargs, jobargs = parse(configfilename)
     ipyargs = [(v["rlglue_port"], v["agent_args"], v["exp_args"]) for v in expargs]
-    exp.run(ipyargs)
+    res = predictive_rl.rlglueexp.ipyexp.run(ipyargs)
+    tmp = 0
+    res.wait()
+    return res.result
 
 
 if __name__ == "__main__":
-    res = parse("sample.config")
+    # res = parse("sample.config")
+    res = run_ipyexp("sample.config")
     temp = 0
