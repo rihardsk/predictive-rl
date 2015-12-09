@@ -7,4 +7,4 @@ def run(state, channel):
     agent_args = state.agent_args
     exp_args = state.exp_args
     seqexp = predictive_rl.rlglueexp.seqexp.SequentialExperiment()
-    seqexp.run_and_wait(rlglue_port, agent_args, exp_args)
+    seqexp.run(rlglue_port, agent_args, exp_args)

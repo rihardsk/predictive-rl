@@ -51,7 +51,7 @@ class SequentialExperiment(object):
         sys.stderr.write("running experiment" + "\n")
         proc.start()
 
-    def run_and_wait(self, rlglue_port, agent_args, exp_args):
+    def run(self, rlglue_port, agent_args, exp_args):
         self.run_env(rlglue_port)
         self.run_rlglue(rlglue_port)
         self.run_agent(rlglue_port, agent_args)
@@ -67,7 +67,6 @@ class SequentialExperiment(object):
         f = open(filename)
 
 
-
 def main():
     # rc = Client()
     # dview = rc[:]
@@ -77,7 +76,7 @@ def main():
     #     processes = set()
     #     processes.add(subprocess.Popen())
     seqexp = SequentialExperiment()
-    seqexp.run_and_wait(4096, {"action_stdev": 5}, {"dir": "test"})
+    seqexp.run(4096, {"action_stdev": 5}, {"dir": "test"})
 
 if __name__ == "__main__":
     main()
