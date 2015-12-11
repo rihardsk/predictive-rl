@@ -8,6 +8,7 @@ from rlglue.types import Observation
 from rlglue.utils import TaskSpecVRLGLUE3
 from abc import ABCMeta, abstractmethod
 import os
+import sys
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -29,6 +30,7 @@ class ExperimenterAgent(object, Agent):
         self.learning_file_header = "epoch,loss"
         self.results_file_header = "epoch,episodes,total_reward,mean_reward"
         self.collect_rewards = True
+        self.logtofile = False
 
     def agent_init(self, taskSpecification):
         pass
@@ -96,6 +98,9 @@ class ExperimenterAgent(object, Agent):
 
         elif params[0] == "set_dir":
             self.exp_dir = params[1]
+            if self.logtofile:
+                outfile = os.path.join(self.exp_dir, "agent_" + str(os.getpid()) + ".out")
+                sys.stdout = open(outfile, "w")
         else:
             return "I don't know how to respond to your message"
 
@@ -176,3 +181,7 @@ class ExperimenterAgent(object, Agent):
         results = np.loadtxt(open(file, "rb"), delimiter=",", skiprows=1)
         plt.plot(results[:, 0], np.convolve(results[:, 1], kernel, mode='same'), '-*')
         plt.show()
+
+    def run(self, logtofile=False):
+        self.logtofile = logtofile
+        AgentLoader.loadAgent(self)

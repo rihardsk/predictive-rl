@@ -413,8 +413,8 @@ class PredictiveAgent(ExperimenterAgent):
             cPickle.dump(self.nnet, net_file, -1)
             net_file.close()
 
-    def run(self):
-        AgentLoader.loadAgent(self)
+    # def run(self, logtofile=False):
+    #     AgentLoader.loadAgent(self)
 
 
 def main():

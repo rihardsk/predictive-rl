@@ -21,6 +21,7 @@ import argparse
 import os
 import time
 import numpy as np
+import sys
 
 
 class RLExperiment(object):
@@ -62,6 +63,7 @@ class RLExperiment(object):
         if prefix == "training" or not collect_reward:
             while steps_left > 0:
                 print prefix + " epoch: ", epoch, "steps_left: ", steps_left
+                sys.stdout.flush()
                 terminal = RLGlue.RL_episode(steps_left)
                 if not terminal:
                     RLGlue.RL_agent_message("episode_end")
@@ -73,6 +75,7 @@ class RLExperiment(object):
             while steps_left > 0:
                 if terminal:
                     print prefix + " epoch: ", epoch, "steps_left: ", steps_left
+                    sys.stdout.flush()
                 roat = RLGlue.RL_step()
                 reward = roat.r
                 terminal = roat.terminal
@@ -88,11 +91,12 @@ class RLExperiment(object):
 
     def open_results_file(self, exp_dir):
         print "OPENING ", exp_dir + '/results.csv'
+        sys.stdout.flush()
         results_file = open(os.path.join(exp_dir, 'results.csv'), 'w', 0)
         results_file.write('epoch,num_episodes,total_reward,reward_per_epoch\n')
         return results_file
 
-    def run(self):
+    def run(self, logtofile=False):
         """
         Run the desired number of training epochs, a testing epoch
         is conducted after each training epoch.
@@ -106,6 +110,10 @@ class RLExperiment(object):
             os.stat(experiment_dir)
         except:
             os.makedirs(experiment_dir)
+
+        if logtofile:
+            outfile = os.path.join(experiment_dir, "experiment_" + str(os.getpid()) + ".out")
+            sys.stdout = open(outfile, "w")
 
         results_file = self.open_results_file(experiment_dir)
         RLGlue.RL_init()

@@ -38,7 +38,7 @@ class SequentialExperiment(object):
     def run_agent(self, rlglue_port, agent_args):
         os.environ["RLGLUE_PORT"] = str(rlglue_port)
         agent = pfe(**agent_args)
-        proc = Process(target=agent.run)
+        proc = Process(target=agent.run, args=[True])
         self.processes.add(proc)
         sys.stderr.write("running agent" + "\n")
         proc.start()
@@ -46,7 +46,7 @@ class SequentialExperiment(object):
     def run_experiment(self, rlglue_port, exp_args):
         os.environ["RLGLUE_PORT"] = str(rlglue_port)
         exp = RLExperiment(**exp_args)
-        proc = Process(target=exp.run)
+        proc = Process(target=exp.run, args=[True])
         self.processes.add(proc)
         sys.stderr.write("running experiment" + "\n")
         proc.start()

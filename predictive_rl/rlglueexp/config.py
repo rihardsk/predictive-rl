@@ -1,5 +1,8 @@
 from configobj import ConfigObj
 import insertjob
+from multiprocessing import Process
+import multiprocessing
+import logging
 
 
 def parse(configfilename):
@@ -39,16 +42,22 @@ def run_ipyexp_async(configfilename):
     return res
 
 
-# def run_seqexp(configfilename):
-#     from predictive_rl.rlglueexp.seqexp import SequentialExperiment
-#     expargs, jobargs = parse(configfilename)
-#     for arg in expargs:
-#
-#     exp = SequentialExperiment()
+def run_seqexp(configfilename):
+    from predictive_rl.rlglueexp.seqexp import SequentialExperiment
+    expargs, jobargs = parse(configfilename)
+    processes = set()
+    exps = set()
+    for arg in expargs:
+        exp = SequentialExperiment()
+        proc = Process(target=exp.run, kwargs=arg)
+
+
+    exp = SequentialExperiment()
 
 
 
 if __name__ == "__main__":
     # res = parse("sample.config")
+    multiprocessing.log_to_stderr(logging.DEBUG)
     res = run_ipyexp("sample.config")
     temp = 0
