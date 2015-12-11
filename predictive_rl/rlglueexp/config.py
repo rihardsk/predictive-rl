@@ -26,13 +26,26 @@ def run_jobexp(configfilename):
 
 
 def run_ipyexp(configfilename):
+    res = run_ipyexp_async(configfilename)
+    res.wait()
+    return res.result
+
+
+def run_ipyexp_async(configfilename):
     import predictive_rl.rlglueexp.ipyexp
     expargs, jobargs = parse(configfilename)
     ipyargs = [(v["rlglue_port"], v["agent_args"], v["exp_args"]) for v in expargs]
     res = predictive_rl.rlglueexp.ipyexp.run(ipyargs)
-    tmp = 0
-    res.wait()
-    return res.result
+    return res
+
+
+# def run_seqexp(configfilename):
+#     from predictive_rl.rlglueexp.seqexp import SequentialExperiment
+#     expargs, jobargs = parse(configfilename)
+#     for arg in expargs:
+#
+#     exp = SequentialExperiment()
+
 
 
 if __name__ == "__main__":
