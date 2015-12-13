@@ -1,5 +1,3 @@
-__author__ = 'rihards'
-
 from predictive_agent import PredictiveAgent
 import copy
 from rlglue.agent import AgentLoader as AgentLoader
@@ -7,6 +5,7 @@ from rlglue.types import Action
 import numpy as np
 import theano
 
+__author__ = 'rihards'
 floatX = theano.config.floatX
 
 

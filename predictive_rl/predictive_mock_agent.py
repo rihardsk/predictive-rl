@@ -1,15 +1,12 @@
-__author__ = 'rihards'
-
 from predictive_agent import PredictiveAgent
-from predictive_agent import Mock
 from cacla_agent_lasagne import CaclaAgentLasagne as cal
-# import cPickle
 from rlglue.agent import AgentLoader as AgentLoader
 import numpy as np
 import theano
 from lasagne import updates
 from lasagne import nonlinearities
 
+__author__ = 'rihards'
 floatX = theano.config.floatX
 
 

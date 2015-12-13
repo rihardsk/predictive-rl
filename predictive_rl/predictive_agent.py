@@ -1,7 +1,4 @@
-__author__ = 'rihards'
-
 from argsagent import ArgsAgent
-import argparse
 import copy
 import cPickle
 import os
@@ -14,12 +11,11 @@ from lasagne import layers
 from lasagne import updates
 from lasagne import nonlinearities
 from lasagne import objectives
-from lasagne.regularization import regularize_layer_params_weighted, l2, l1
+from lasagne.regularization import l2, l1
 from lasagne.regularization import regularize_layer_params
-import nolearn
-from nolearn.lasagne import NeuralNet
-from nolearn.lasagne import BatchIterator
 import theano.tensor as T
+
+__author__ = 'rihards'
 
 floatX = theano.config.floatX
 

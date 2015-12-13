@@ -1,15 +1,13 @@
 import os
-from matplotlib._delaunay import nn_interpolate_grid
 import sys
-
-__author__ = 'rihards'
-
 import layers
 import theano
 from theano import tensor as T
 import numpy as np
 import cPickle, gzip
 import time
+
+__author__ = 'rihards'
 
 
 class NN():

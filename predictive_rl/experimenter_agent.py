@@ -1,16 +1,12 @@
-__author__ = 'rihards'
-
-
 from rlglue.agent.Agent import Agent
 from rlglue.agent import AgentLoader as AgentLoader
-from rlglue.types import Action
-from rlglue.types import Observation
-from rlglue.utils import TaskSpecVRLGLUE3
 from abc import ABCMeta, abstractmethod
 import os
 import sys
 import numpy as np
 import matplotlib.pyplot as plt
+
+__author__ = 'rihards'
 
 
 class ExperimenterAgent(object, Agent):
