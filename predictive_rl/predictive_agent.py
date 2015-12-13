@@ -1,6 +1,6 @@
 __author__ = 'rihards'
 
-from experimenter_agent import ExperimenterAgent
+from argsagent import ArgsAgent
 import argparse
 import copy
 import cPickle
@@ -29,7 +29,7 @@ class Mock(object):
         self.__dict__.update(kwargs)
 
 
-class PredictiveAgent(ExperimenterAgent):
+class PredictiveAgent(ArgsAgent):
     randGenerator = np.random
 
     def __init__(self, **kwargs):
@@ -38,21 +38,7 @@ class PredictiveAgent(ExperimenterAgent):
         instead of agent_init to make it possible to use --help from
         the command line without starting an experiment.
         """
-        super(PredictiveAgent, self).__init__()
-
-        # Handle command line argument:
-        parser = argparse.ArgumentParser(description='Neural rl agent.')
-        self._add_parse_args(parser)
-
-        # Create instance variables directy from the arguments:
-        # parser.parse_known_args(namespace=self)
-
-        if len(kwargs) == 0:
-            args = parser.parse_args()
-        else:
-            ns = argparse.Namespace(**kwargs)
-            args = parser.parse_args([], ns)
-        self._get_parsed_args(args)
+        super(PredictiveAgent, self).__init__(**kwargs)
 
     def _add_parse_args(self, parser):
         parser.add_argument('-r', '--learning_rate', type=float, default=.001,
