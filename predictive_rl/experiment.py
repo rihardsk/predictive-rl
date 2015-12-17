@@ -29,6 +29,11 @@ def dicttoargs(argsdict):
     return parts
 
 
+def rlterminate():
+    RLGlue.doCallWithNoParams(RLGlue.Network.kRLTerm)
+    RLGlue.network.close()
+
+
 class RLExperiment(object):
     def __init__(self, **kwargs):
         parser = argparse.ArgumentParser(description='Neural rl experiment.')
@@ -143,6 +148,7 @@ class RLExperiment(object):
                 # duration = time.time() - curtime
                 # print "testing epoch " + str(epoch) + " " + str(duration)
                 RLGlue.RL_agent_message("finish_testing " + str(epoch))
+        rlterminate()
 
 if __name__ == "__main__":
     exp = RLExperiment()

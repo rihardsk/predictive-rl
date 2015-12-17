@@ -2,7 +2,7 @@ import subprocess
 import atexit
 from multiprocessing import Process
 from predictive_rl.predictive_future_agent import PredictiveFutureAgent as pfe
-from predictive_rl.experiment import RLExperiment
+from predictive_rl.experiment import RLExperiment, rlterminate
 import os
 import sys
 
@@ -14,6 +14,12 @@ class SequentialExperiment(object):
 
         @atexit.register
         def kill_subprocesses():
+            try:
+                print "shuttig down rlglue network.."
+                rlterminate()
+                print "success!"
+            except:
+                print "fail!"
             for subproc in self.subprocesses:
                 print "killing"
                 print subproc
