@@ -23,6 +23,12 @@ import time
 import sys
 
 
+def dicttoargs(argsdict):
+    parts = ["--{0}={1}".format(str(k), str(v)) for k, v in argsdict.iteritems()]
+    # return " ".join(parts)
+    return parts
+
+
 class RLExperiment(object):
     def __init__(self, **kwargs):
         parser = argparse.ArgumentParser(description='Neural rl experiment.')
@@ -45,7 +51,7 @@ class RLExperiment(object):
         if len(kwargs) == 0:
             self.args = parser.parse_args()
         else:
-            self.args = parser.parse_args([], argparse.Namespace(**kwargs))
+            self.args = parser.parse_args(dicttoargs(kwargs))
         # TODO: pull the args out in the class
 
     def run_epoch(self, epoch, num_steps, prefix, collect_reward=False):

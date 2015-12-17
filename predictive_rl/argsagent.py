@@ -3,6 +3,12 @@ import argparse
 from abc import ABCMeta, abstractmethod
 
 
+def dicttoargs(argsdict):
+    parts = ["--{0}={1}".format(str(k), str(v)) for k, v in argsdict.iteritems()]
+    # return " ".join(parts)
+    return parts
+
+
 class ArgsAgent(ExperimenterAgent):
     __metaclass__ = ABCMeta
 
@@ -18,8 +24,9 @@ class ArgsAgent(ExperimenterAgent):
         if len(kwargs) == 0:
             args = parser.parse_args()
         else:
-            ns = argparse.Namespace(**kwargs)
-            args = parser.parse_args([], ns)
+            # ns = argparse.Namespace(**kwargs)
+            # args = parser.parse_args([], ns)
+            args = parser.parse_args(dicttoargs(kwargs))
         self._get_parsed_args(args)
 
     def _get_description(self):
