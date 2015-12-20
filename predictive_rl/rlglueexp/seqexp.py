@@ -83,7 +83,7 @@ def main():
     #     processes = set()
     #     processes.add(subprocess.Popen())
     seqexp = SequentialExperiment()
-    seqexp.run(4096, {"action_stdev": 5}, {"dir": "test"}, "PredictiveFutureAgent")
+    seqexp.run(4096, {"action_stdev": 5}, {"dir": "test"}, "PredictiveMockAgent")
 
 if __name__ == "__main__":
     main()

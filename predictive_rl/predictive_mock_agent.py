@@ -36,13 +36,13 @@ class MockNnet(object):
 class PredictiveMockAgent(PredictiveAgent):
     randGenerator = np.random
 
-    def __init__(self):
+    def __init__(self, **kwargs):
         """
         Mostly just read command line arguments here. We do this here
         instead of agent_init to make it possible to use --help from
         the command line without starting an experiment.
         """
-        super(PredictiveMockAgent, self).__init__()
+        super(PredictiveMockAgent, self).__init__(**kwargs)
 
     # def _init_network(self):
     #     if self.nn_file is None:
