@@ -37,7 +37,7 @@ def run_ipyexp(configfilename):
 def run_ipyexp_async(configfilename):
     import predictive_rl.rlglueexp.ipyexp
     expargs, jobargs = parse(configfilename)
-    ipyargs = [(v["rlglue_port"], v["agent_args"], v["exp_args"]) for v in expargs]
+    ipyargs = [(v["rlglue_port"], v["agent_args"], v["exp_args"], v["agent"]) for v in expargs]
     res = predictive_rl.rlglueexp.ipyexp.run(ipyargs)
     return res
 

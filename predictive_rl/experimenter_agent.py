@@ -164,7 +164,15 @@ class ExperimenterAgent(object, Agent):
         plt.plot(results[:, 0], np.convolve(results[:, 2], kernel, mode='same'), '-*')
         #plt.ylim([0, 250])
         plt.subplot(1, 2, 2)
-        plt.plot(results[:, 0], results[:, 3], '--')
+        # plt.plot(results[:, 0], results[:, 3], '--')
+        runningavgs = []
+        runsum = 0
+        rewardsumsum = 0
+        for runs, rewardsum in zip(results[:, 1], results[:, 2]):
+            runsum += runs
+            rewardsumsum += rewardsum
+            runningavgs.append(rewardsumsum / runsum)
+        plt.plot(results[:, 0], runningavgs, '-x')
         #plt.ylim([0, 4])
         plt.show()\
 

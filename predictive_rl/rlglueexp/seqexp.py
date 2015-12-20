@@ -1,7 +1,7 @@
 import subprocess
 import atexit
 from multiprocessing import Process
-from predictive_rl.predictive_future_agent import PredictiveFutureAgent as pfe
+import predictive_rl
 from predictive_rl.experiment import RLExperiment, rlterminate
 import os
 import sys
@@ -41,9 +41,10 @@ class SequentialExperiment(object):
         sys.stderr.write("\t" + glue_command + "\n")
         self.subprocesses.add(subprocess.Popen(glue_command, shell=True))
 
-    def run_agent(self, rlglue_port, agent_args):
+    def run_agent(self, rlglue_port, agent_args, agentname):
         os.environ["RLGLUE_PORT"] = str(rlglue_port)
-        agent = pfe(**agent_args)
+        agentclass = getattr(predictive_rl, agentname)
+        agent = agentclass(**agent_args)
         proc = Process(target=agent.run, args=[True])
         self.processes.add(proc)
         sys.stderr.write("running agent" + "\n")
@@ -57,10 +58,10 @@ class SequentialExperiment(object):
         sys.stderr.write("running experiment" + "\n")
         proc.start()
 
-    def run(self, rlglue_port, agent_args, exp_args):
+    def run(self, rlglue_port, agent_args, exp_args, agent):
         self.run_env(rlglue_port)
         self.run_rlglue(rlglue_port)
-        self.run_agent(rlglue_port, agent_args)
+        self.run_agent(rlglue_port, agent_args, agent)
         self.run_experiment(rlglue_port, exp_args)
 
         for subproc in self.subprocesses:
@@ -82,7 +83,7 @@ def main():
     #     processes = set()
     #     processes.add(subprocess.Popen())
     seqexp = SequentialExperiment()
-    seqexp.run(4096, {"action_stdev": 5}, {"dir": "test"})
+    seqexp.run(4096, {"action_stdev": 5}, {"dir": "test"}, "PredictiveFutureAgent")
 
 if __name__ == "__main__":
     main()
