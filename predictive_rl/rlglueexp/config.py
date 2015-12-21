@@ -50,14 +50,14 @@ def run_seqexp(configfilename):
     for arg in expargs:
         exp = SequentialExperiment()
         proc = Process(target=exp.run, kwargs=arg)
-
-
-    exp = SequentialExperiment()
+        proc.start()
+        proc.join()
 
 
 
 if __name__ == "__main__":
     # res = parse("sample.config")
     multiprocessing.log_to_stderr(logging.DEBUG)
-    res = run_ipyexp("sample.config")
+    # res = run_ipyexp("sample.config")
+    res = run_seqexp("../../experiments/short.config")
     temp = 0
