@@ -40,7 +40,7 @@ class PredictiveAgent(ArgsAgent):
     def _add_parse_args(self, parser):
         parser.add_argument('-r', '--learning_rate', type=float, default=.001,
                             help='Learning rate')
-        parser.add_argument('-c', '--clipping_range', type=float, default=1,
+        parser.add_argument('-c', '--clipping_range', type=float, default=None,
                             help='Gradclippient clipping range (symetric). None to disable.')
         parser.add_argument('-s', '--action_stdev', type=float, default=1,
                             help='Action space exploration standard deviation for Gaussian distribution. '

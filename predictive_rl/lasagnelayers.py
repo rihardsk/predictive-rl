@@ -13,13 +13,9 @@ class ClippingDenseLayer(DenseLayer):
             # if the input has more than two dimensions, flatten it into a
             # batch of feature vectors.
             input = input.flatten(2)
-        clipped_W = self.W
-        clipped_b = self.b
+        activation = T.dot(input, self.W)
+        if self.b is not None:
+            activation = activation + self.b.dimshuffle('x', 0)
         if self.grad_clipping:
-            clipped_W = grad_clip(clipped_W, -self.grad_clipping, self.grad_clipping)
-            if clipped_b is not None:
-                clipped_b = grad_clip(clipped_b, -self.grad_clipping, self.grad_clipping)
-        activation = T.dot(input, clipped_W)
-        if clipped_b is not None:
-            activation = activation + clipped_b.dimshuffle('x', 0)
+            activation = grad_clip(activation, -self.grad_clipping, self.grad_clipping)
         return self.nonlinearity(activation)
