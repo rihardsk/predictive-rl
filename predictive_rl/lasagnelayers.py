@@ -19,3 +19,23 @@ class ClippingDenseLayer(DenseLayer):
         if self.grad_clipping:
             activation = grad_clip(activation, -self.grad_clipping, self.grad_clipping)
         return self.nonlinearity(activation)
+# def sgd_with_grad_clipping(loss_or_grads, params, learning_rate, rescale):
+#     grads = lasagne.updates.get_or_compute_grads(loss_or_grads, params)
+#     updates = OrderedDict()
+#
+#     grad_norm = T.sqrt(sum(map(lambda x: T.sqr(x).sum(), grads)))
+#     not_finite = T.or_(T.isnan(grad_norm), T.isinf(grad_norm))
+#     grad_norm = T.sqrt(grad_norm)
+#     scaling_num = rescale
+#     scaling_den = T.maximum(rescale, grad_norm)
+#     for n, (param, grad) in enumerate(zip(params, grads)):
+#         grad = T.switch(not_finite, 0.1 * param,
+#             grad * (scaling_num / scaling_den))
+#         updates[param] = param - learning_rate * grad
+#     return updates
+
+# max_norm = 5.0
+# grads = theano.gradient(loss, params)
+# grads = [lasagne.updates.norm_constraint(grad, max_norm, range(grad.ndim))
+#          for grad in grads]
+# updates = lasagne.updates.whatever(grads, params)
