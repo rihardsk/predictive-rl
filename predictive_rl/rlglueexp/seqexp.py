@@ -23,29 +23,37 @@ class SequentialExperiment(object):
             for subproc in self.subprocesses:
                 print "killing"
                 print subproc
-                subproc.kill()
+                try:
+                    subproc.kill()
+                except:
+                    pass
             for proc in self.processes:
                 print "killing"
                 print proc
-                proc.terminate()
+                try:
+                    proc.terminate()
+                except:
+                    pass
 
     def run_env(self, rlglue_port):
         env_command = "RLGLUE_PORT={0} java -jar /home/rihards/Programming/Multi/rl/rl-library/rl-library/products/CartPole.jar".format(rlglue_port)
         sys.stderr.write("running:\n")
         sys.stderr.write("\t"+env_command + "\n")
-        self.subprocesses.add(subprocess.Popen(env_command, shell=True))
+        subproc = subprocess.Popen(env_command, shell=True)
+        self.subprocesses.add(subproc)
 
     def run_rlglue(self, rlglue_port):
         glue_command = "RLGLUE_PORT={0} rl_glue".format(rlglue_port)
         sys.stderr.write("running:\n")
         sys.stderr.write("\t" + glue_command + "\n")
-        self.subprocesses.add(subprocess.Popen(glue_command, shell=True))
+        subproc = subprocess.Popen(glue_command, shell=True)
+        self.subprocesses.add(subproc)
 
     def run_agent(self, rlglue_port, agent_args, agentname):
         os.environ["RLGLUE_PORT"] = str(rlglue_port)
         agentclass = getattr(predictive_rl, agentname)
         agent = agentclass(**agent_args)
-        proc = Process(target=agent.run, args=[True])
+        proc = Process(target=agent.run, args=[True], name="Run agent")
         self.processes.add(proc)
         sys.stderr.write("running agent" + "\n")
         proc.start()
@@ -53,7 +61,7 @@ class SequentialExperiment(object):
     def run_experiment(self, rlglue_port, exp_args):
         os.environ["RLGLUE_PORT"] = str(rlglue_port)
         exp = RLExperiment(**exp_args)
-        proc = Process(target=exp.run, args=[True])
+        proc = Process(target=exp.run, args=[True], name="Run experiment")
         self.processes.add(proc)
         sys.stderr.write("running experiment" + "\n")
         proc.start()

@@ -49,10 +49,10 @@ def run_seqexp(configfilename):
     exps = set()
     for arg in expargs:
         exp = SequentialExperiment()
-        proc = Process(target=exp.run, kwargs=arg)
-        proc.start()
-        proc.join()
-
+        # proc = Process(target=exp.run, kwargs=arg, name="Run seqexp")
+        # proc.start()
+        # proc.join()
+        exp.run(**arg)
 
 
 if __name__ == "__main__":

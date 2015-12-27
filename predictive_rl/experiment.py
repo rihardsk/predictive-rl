@@ -31,7 +31,6 @@ def dicttoargs(argsdict):
 
 def rlterminate():
     RLGlue.doCallWithNoParams(RLGlue.Network.kRLTerm)
-    RLGlue.network.close()
 
 
 class RLExperiment(object):
