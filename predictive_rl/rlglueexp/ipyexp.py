@@ -6,18 +6,25 @@ with dview.sync_imports():
 
 
 @dview.parallel(block=False)
-def run(args):
+def _run(args):
+    """
+    It's assumed that this will be called as _run.map(args)
+    """
     import predictive_rl.rlglueexp.seqexp
     print("heeeee")
     seqexp = predictive_rl.rlglueexp.seqexp.SequentialExperiment()
     print("lllll")
     import sys
     sys.stderr.write(str(args) + "\n")
-    rlglue_port, agent_args, exp_args, agent = args[0]
+    rlglue_port, agent_args, exp_args, agent = args
     # rlglue_port, agent_args, exp_args = (1,2,3)
     print("ooooo")
     res = seqexp.run(rlglue_port, agent_args, exp_args, agent)
     return rlglue_port
+
+
+def run(args):
+    return _run.map(args)
 
 
 def main():

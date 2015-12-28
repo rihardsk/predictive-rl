@@ -59,5 +59,6 @@ if __name__ == "__main__":
     # res = parse("sample.config")
     multiprocessing.log_to_stderr(logging.DEBUG)
     # res = run_ipyexp("sample.config")
-    res = run_seqexp("../../experiments/short.config")
+    # res = run_seqexp("../../experiments/short.config")
+    res = run_ipyexp("../../experiments/short.config")
     temp = 0
