@@ -1,5 +1,4 @@
 from configobj import ConfigObj
-import insertjob
 from multiprocessing import Process
 import multiprocessing
 import logging
@@ -25,6 +24,7 @@ def parse(configfilename):
 
 
 def run_jobexp(configfilename):
+    import insertjob
     return insertjob.insert_jobexp(*parse(configfilename))
 
 
