@@ -14,7 +14,7 @@ from lasagne import objectives
 from lasagne.regularization import l2, l1
 from lasagne.regularization import regularize_layer_params
 import theano.tensor as T
-from lasagnelayers import ClippingDenseLayer
+from lasagne.layers import DenseLayer
 
 __author__ = 'rihards'
 
@@ -162,30 +162,30 @@ class PredictiveAgent(ArgsAgent):
                     output_nonlinearity=None, update_method=updates.sgd):
         commonlayers = []
         commonlayers.append(layers.InputLayer(shape=(None, input_dims)))
-        commonlayers.append(ClippingDenseLayer(clipping_range, commonlayers[-1], num_hidden_units,
+        commonlayers.append(DenseLayer(commonlayers[-1], num_hidden_units,
                                                nonlinearity=hidden_nonlinearity))
         if num_hidden_action_units is None:
-            actionlayers = [ClippingDenseLayer(clipping_range,commonlayers[-1], action_dims,
+            actionlayers = [DenseLayer(commonlayers[-1], action_dims,
                                                nonlinearity=output_nonlinearity)]
         else:
-            actionlayers = [ClippingDenseLayer(clipping_range,commonlayers[-1], num_hidden_action_units,
+            actionlayers = [DenseLayer(commonlayers[-1], num_hidden_action_units,
                                                nonlinearity=output_nonlinearity)]
-            actionlayers.append(ClippingDenseLayer(clipping_range, actionlayers[-1], action_dims,
+            actionlayers.append(DenseLayer(actionlayers[-1], action_dims,
                                                    nonlinearity=output_nonlinearity))
         if num_hidden_observ_units is None:
-            observlayers = [ClippingDenseLayer(clipping_range, commonlayers[-1], observation_dims,
+            observlayers = [DenseLayer(commonlayers[-1], observation_dims,
                                                nonlinearity=output_nonlinearity)]
         else:
-            observlayers = [ClippingDenseLayer(clipping_range, commonlayers[-1], num_hidden_observ_units,
+            observlayers = [DenseLayer(commonlayers[-1], num_hidden_observ_units,
                                                nonlinearity=output_nonlinearity)]
-            observlayers.append(ClippingDenseLayer(observlayers[-1], observation_dims, nonlinearity=output_nonlinearity))
+            observlayers.append(DenseLayer(observlayers[-1], observation_dims, nonlinearity=output_nonlinearity))
         if num_hidden_value_units is None:
-            dvaluelayers = [ClippingDenseLayer(clipping_range, commonlayers[-1], value_dims,
+            dvaluelayers = [DenseLayer(commonlayers[-1], value_dims,
                                                nonlinearity=output_nonlinearity)]
         else:
-            dvaluelayers = [ClippingDenseLayer(clipping_range, commonlayers[-1], num_hidden_value_units,
+            dvaluelayers = [DenseLayer(commonlayers[-1], num_hidden_value_units,
                                                nonlinearity=output_nonlinearity)]
-            dvaluelayers.append(ClippingDenseLayer(clipping_range, dvaluelayers[-1], value_dims,
+            dvaluelayers.append(DenseLayer(dvaluelayers[-1], value_dims,
                                                    nonlinearity=output_nonlinearity))
         actvallayers = [layers.ConcatLayer([actionlayers[-1], dvaluelayers[-1]])]
         obsvallayers = [layers.ConcatLayer([observlayers[-1], dvaluelayers[-1]])]
