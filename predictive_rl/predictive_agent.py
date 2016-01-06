@@ -40,8 +40,8 @@ class PredictiveAgent(ArgsAgent):
     def _add_parse_args(self, parser):
         parser.add_argument('-r', '--learning_rate', type=float, default=.001,
                             help='Learning rate')
-        parser.add_argument('-c', '--clipping_range', type=float, default=None,
-                            help='Gradclippient clipping range (symetric). None to disable.')
+        parser.add_argument('-c', '--grad_clipping', type=float, default=None,
+                            help='Gradient clipping range (symetric). None to disable.')
         parser.add_argument('-s', '--action_stdev', type=float, default=1,
                             help='Action space exploration standard deviation for Gaussian distribution. '
                                  'Applied to action range.')
@@ -75,7 +75,7 @@ class PredictiveAgent(ArgsAgent):
 
     def _get_parsed_args(self, args):
         self.learning_rate = args.learning_rate
-        self.clipping_range = args.clipping_range
+        self.grad_clipping = args.grad_clipping
         self.l1_weight = args.l1_weight
         self.l2_weight = args.l2_weight
         self.exp_dir = args.dir
@@ -142,7 +142,7 @@ class PredictiveAgent(ArgsAgent):
                                          observation_dims=self.observation_size,
                                          value_dims=1,
                                          learning_rate=self.learning_rate,
-                                         clipping_range=self.clipping_range,
+                                         grad_clip=self.grad_clipping,
                                          l1_weight=self.l1_weight,
                                          l2_weight=self.l2_weight,
                                          num_hidden_units=self.nn_hidden_size,
@@ -156,7 +156,7 @@ class PredictiveAgent(ArgsAgent):
             self.nnet = cPickle.load(handle)
 
     @staticmethod
-    def create_nnet(input_dims, action_dims, observation_dims, value_dims, learning_rate, clipping_range=None, l1_weight=None, l2_weight=None,
+    def create_nnet(input_dims, action_dims, observation_dims, value_dims, learning_rate, grad_clip=None, l1_weight=None, l2_weight=None,
                     num_hidden_units=20, num_hidden_action_units=None, num_hidden_observ_units=None, num_hidden_value_units=None,
                     batch_size=32, max_train_epochs=1, hidden_nonlinearity=nonlinearities.rectify,
                     output_nonlinearity=None, update_method=updates.sgd):
@@ -233,11 +233,28 @@ class PredictiveAgent(ArgsAgent):
         dvalue_params = layers.get_all_params(dvaluelayers[-1], trainable=True)
         actval_params = layers.get_all_params(actvallayers[-1], trainable=True)
         concat_params = layers.get_all_params(concatlayers[-1], trainable=True)
-        action_updates = update_method(action_loss, action_params, learning_rate)
-        obsval_updates = update_method(obsval_loss, obsval_params, learning_rate)
-        dvalue_updates = update_method(dvalue_loss, dvalue_params, learning_rate)
-        actval_updates = update_method(actval_loss, actval_params, learning_rate)
-        concat_updates = update_method(concat_loss, concat_params, learning_rate)
+        if grad_clip is not None:
+            action_grads = theano.grad(action_loss, action_params)
+            obsval_grads = theano.grad(obsval_loss, obsval_params)
+            dvalue_grads = theano.grad(dvalue_loss, dvalue_params)
+            actval_grads = theano.grad(actval_loss, actval_params)
+            concat_grads = theano.grad(concat_loss, concat_params)
+            action_grads = [updates.norm_constraint(grad, grad_clip, range(grad.ndim)) for grad in action_grads]
+            obsval_grads = [updates.norm_constraint(grad, grad_clip, range(grad.ndim)) for grad in obsval_grads]
+            dvalue_grads = [updates.norm_constraint(grad, grad_clip, range(grad.ndim)) for grad in dvalue_grads]
+            actval_grads = [updates.norm_constraint(grad, grad_clip, range(grad.ndim)) for grad in actval_grads]
+            concat_grads = [updates.norm_constraint(grad, grad_clip, range(grad.ndim)) for grad in concat_grads]
+            action_updates = update_method(action_grads, action_params, learning_rate)
+            obsval_updates = update_method(obsval_grads, obsval_params, learning_rate)
+            dvalue_updates = update_method(dvalue_grads, dvalue_params, learning_rate)
+            actval_updates = update_method(actval_grads, actval_params, learning_rate)
+            concat_updates = update_method(concat_grads, concat_params, learning_rate)
+        else:
+            action_updates = update_method(action_loss, action_params, learning_rate)
+            obsval_updates = update_method(obsval_loss, obsval_params, learning_rate)
+            dvalue_updates = update_method(dvalue_loss, dvalue_params, learning_rate)
+            actval_updates = update_method(actval_loss, actval_params, learning_rate)
+            concat_updates = update_method(concat_loss, concat_params, learning_rate)
 
         fit_action = theano.function([input_var, action_target], action_loss, updates=action_updates)
         fit_obsval = theano.function([input_var, obsval_target], obsval_loss, updates=obsval_updates)
