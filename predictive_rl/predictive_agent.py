@@ -339,6 +339,8 @@ class PredictiveAgent(ArgsAgent):
         # this reflects whether the value of the last_state has risen after the value_network update above
         mask = target_value > last_state_value
 
+        self.diverging = np.isnan(observation).any() or np.isnan(action).any()
+
         if mask[0, 0]:
             if not terminal:
                 loss = self.nnet.fit_both(self.last_state, np.hstack((self.last_action, observation, target_value)))
