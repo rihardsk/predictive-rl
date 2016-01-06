@@ -134,6 +134,10 @@ class RLExperiment(object):
             self.run_epoch(epoch, args.epoch_length, "training")
             # duration = time.time() - curtime
             # print "training epoch " + str(epoch) + " " + str(duration)
+            diverging = RLGlue.RL_agent_message("query_divergence")
+            if diverging == "True":
+                print("The agent has diverged. Quiting.")
+                rlterminate()
             RLGlue.RL_agent_message("finish_epoch " + str(epoch))
 
             if args.test_length > 0:

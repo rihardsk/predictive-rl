@@ -27,6 +27,7 @@ class ExperimenterAgent(object, Agent):
         self.results_file_header = "epoch,episodes,total_reward,mean_reward"
         self.collect_rewards = True
         self.logtofile = False
+        self.diverging = False
 
     def agent_init(self, taskSpecification):
         pass
@@ -97,6 +98,8 @@ class ExperimenterAgent(object, Agent):
             if self.logtofile:
                 outfile = os.path.join(self.exp_dir, "agent_" + str(os.getpid()) + ".out")
                 sys.stdout = open(outfile, "w")
+        elif params[0] == "query_divergence":
+            return "True" if self.diverging else "False"
         else:
             return "I don't know how to respond to your message"
 
