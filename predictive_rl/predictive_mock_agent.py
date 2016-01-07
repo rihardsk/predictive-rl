@@ -64,7 +64,7 @@ class PredictiveMockAgent(PredictiveAgent):
 
 
     @staticmethod
-    def create_nnet(input_dims, action_dims, observation_dims, value_dims, learning_rate, l1_weight=None, l2_weight=None,
+    def create_nnet(input_dims, action_dims, observation_dims, value_dims, learning_rate, grad_clip=None, l1_weight=None, l2_weight=None,
                     num_hidden_units=20, num_hidden_action_units=None, num_hidden_observ_units=None, num_hidden_value_units=None,
                     batch_size=32, max_train_epochs=1, hidden_nonlinearity=nonlinearities.rectify,
                     output_nonlinearity=None, update_method=updates.sgd):
