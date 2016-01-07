@@ -136,7 +136,7 @@ class ExperimenterAgent(object, Agent):
     def save_results(self, epoch, rewards, onresults=False):
         if not onresults and self.results_file is None:
             self.open_results_file(self.exp_dir)
-        if onresults and self.results_file is None:
+        if onresults and self.onresults_file is None:
             self.open_onresults_file(self.exp_dir)
         out = "{},{},{},{}\n".format(epoch, len(rewards), np.sum(rewards), np.mean(rewards))
         if onresults:
