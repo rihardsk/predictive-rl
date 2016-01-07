@@ -311,6 +311,7 @@ class PredictiveAgent(ArgsAgent):
         double_action = self._explore(pred_action, self.action_stdev)
         loss = None
         if not is_testing:
+            self.diverging = np.isnan(cur_observation).any() or np.isnan(double_action).any()
             loss = self._do_training(np.asmatrix(reward, dtype=floatX), cur_observation, double_action, False,
                                      cur_observation_value, pred_observation, pred_action)
         return_action.doubleArray = [copy.deepcopy(double_action)]
@@ -338,8 +339,6 @@ class PredictiveAgent(ArgsAgent):
 
         # this reflects whether the value of the last_state has risen after the value_network update above
         mask = target_value > last_state_value
-
-        self.diverging = np.isnan(observation).any() or np.isnan(action).any()
 
         if mask[0, 0]:
             if not terminal:
