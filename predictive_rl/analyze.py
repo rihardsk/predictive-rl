@@ -2,13 +2,41 @@ import pandas as pd
 import os
 import itertools as it
 from argparse import ArgumentParser
+import re
+
+
+def diverged(expdir):
+    expfile = None
+    expre = re.compile(r"^experiment_\d+\.out$")
+    for name in os.listdir(expdir):
+        if os.path.isfile(os.path.join(expdir, name)) and expre.match(name):
+            expfile = os.path.join(expdir, name)
+            break
+    if expfile is None:
+        return None
+    divergedre = re.compile("The agent has diverged")
+    with open(expfile) as f:
+        lines = f.readlines()
+        linesfromend = 4
+        for i in range(linesfromend):
+            if len(lines) > i:
+                if divergedre.search(lines[-i - 1]):
+                    return True
+            else:
+                break
+    return False
 
 
 def savemean(basedir):
     count = 0
 
     for dir in it.islice(os.walk(basedir), 1, None):
+        if diverged(dir[0]):
+            print("Diverged: " + dir[0])
+            continue
         resultsfile = os.path.join(dir[0], 'onresults.csv')
+        if not os.path.isfile(resultsfile):
+            continue
         csv = pd.read_csv(resultsfile)
         if count == 0:
             csvsum = csv
@@ -54,9 +82,17 @@ def main():
     parser = ArgumentParser(description='A tool to analyze RL experiment results.')
     parser.add_argument('-s', '--subdirs', action='store_true',
                         help='If set, search all of the subdirectories of DIRECTORY for experiment results.')
+    parser.add_argument('-m', '--mean', action='store_true',
+                        help='If set, get mean results of all experiment results in DIRECTORY.'
+                             'The files should have equal line count.'
+                             'Can be used only together with --subdirs.')
     parser.add_argument('directory', help='The directory to look for experiment results.')
     args = parser.parse_args()
+    if args.mean and not args.subdirs:
+        parser.error('--mean can be used only together with --subdirs.')
     printbest(args.directory, args.subdirs)
+    if args.mean:
+        savemean(args.directory)
 
 if __name__ == '__main__':
     main()
