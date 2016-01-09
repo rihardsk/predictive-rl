@@ -3,6 +3,7 @@ import os
 import itertools as it
 from argparse import ArgumentParser
 import re
+from matplotlib import pyplot as plt
 
 
 def diverged(expdir):
@@ -27,7 +28,7 @@ def diverged(expdir):
     return False
 
 
-def savemean(basedir):
+def savemean(basedir, plot=False):
     count = 0
 
     for dir in it.islice(os.walk(basedir), 1, None):
@@ -44,7 +45,21 @@ def savemean(basedir):
             csvsum += csv
         count += 1
     savepath = os.path.join(basedir, 'onresults.mean.csv')
-    (csvsum / count).to_csv(savepath, index=False)
+    meancsv = csvsum / count
+    meancsv.to_csv(savepath, index=False)
+    if plot:
+        plotcount = len(plot)
+        for i, toplot in enumerate(plot):
+            runaverages = False
+            if isinstance(toplot, tuple):
+                toplot, runaverages = toplot
+            plt.subplot(1, plotcount, i + 1)
+            if runaverages:
+                pd.expanding_mean(meancsv[toplot]).plot()
+            else:
+                meancsv[toplot].plot()
+        plt.show()
+    return savepath
 
 
 def printbest(basedir, subdirs=False):
@@ -86,13 +101,19 @@ def main():
                         help='If set, get mean results of all experiment results in DIRECTORY.'
                              'The files should have equal line count.'
                              'Can be used only together with --subdirs.')
+    parser.add_argument('-p', '--plot', action='store_true',
+                        help='If set, plot the mean results of all experiment results in DIRECTORY.'
+                             'Can be used only together with --mean.')
     parser.add_argument('directory', help='The directory to look for experiment results.')
     args = parser.parse_args()
     if args.mean and not args.subdirs:
         parser.error('--mean can be used only together with --subdirs.')
+    if args.plot and not args.mean:
+        parser.error('--plot can be used only together with --mean.')
     printbest(args.directory, args.subdirs)
     if args.mean:
-        savemean(args.directory)
+        plotcolumns = ['total_reward', ('mean_reward', True)] if args.plot else False
+        savemean(args.directory, plotcolumns)
 
 if __name__ == '__main__':
     main()
