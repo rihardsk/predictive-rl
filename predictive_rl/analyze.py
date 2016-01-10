@@ -116,7 +116,7 @@ def printbest(basedir, subdirs=False):
     print("Best mean reward of {0}".format(maxmeanreward))
     print("achieved in epoch {0}".format(maxind))
     maxfile = "network_file_{0}.pkl".format(maxind)
-    print("with {0}".format(os.path.join(basedir, maxdir, maxfile)))
+    print("with {0}".format(os.path.join(maxdir, maxfile)))
 
 
 def main():
