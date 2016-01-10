@@ -34,8 +34,6 @@ class MockNnet(object):
 
 
 class PredictiveMockAgent(PredictiveAgent):
-    randGenerator = np.random
-
     def __init__(self, **kwargs):
         """
         Mostly just read command line arguments here. We do this here
