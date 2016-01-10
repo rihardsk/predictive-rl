@@ -62,6 +62,32 @@ def savemean(basedir, plot=False):
     return savepath
 
 
+def plotall(basedir, plot=None):
+    for dir in it.islice(os.walk(basedir), 1, None):
+        hasdiverged = False
+        if diverged(dir[0]):
+            hasdiverged = True
+        resultsfile = os.path.join(dir[0], 'onresults.csv')
+        if not os.path.isfile(resultsfile):
+            continue
+        csv = pd.read_csv(resultsfile)
+        if isinstance(plot, list):
+            plotcount = len(plot)
+            for i, toplot in enumerate(plot):
+                runaverages = False
+                if isinstance(toplot, tuple):
+                    toplot, runaverages = toplot
+                label = os.path.split(dir[0])[-1] + (" (diverged)" if hasdiverged else "")
+                plt.subplot(1, plotcount, i + 1)
+                if runaverages:
+                    pd.expanding_mean(csv[toplot]).plot(label=label)
+                else:
+                    csv[toplot].plot()
+        else:
+            csv.plot(subplots=True)
+    plt.show()
+
+
 def printbest(basedir, subdirs=False):
     maxdir = "none"
     maxmeanreward = float("-inf")
@@ -104,16 +130,23 @@ def main():
     parser.add_argument('-p', '--plot', action='store_true',
                         help='If set, plot the mean results of all experiment results in DIRECTORY.'
                              'Can be used only together with --mean.')
+    parser.add_argument('-P', '--plotall', action='store_true',
+                        help='If set, plot the results of all experiment results in DIRECTORY.'
+                             'Can be used only together with --mean.')
     parser.add_argument('directory', help='The directory to look for experiment results.')
     args = parser.parse_args()
     if args.mean and not args.subdirs:
         parser.error('--mean can be used only together with --subdirs.')
     if args.plot and not args.mean:
         parser.error('--plot can be used only together with --mean.')
+    if args.plotall and not args.mean:
+        parser.error('--plotall can be used only together with --mean.')
     printbest(args.directory, args.subdirs)
+    plotcolumns = ['total_reward', ('mean_reward', True)]
     if args.mean:
-        plotcolumns = ['total_reward', ('mean_reward', True)] if args.plot else False
-        savemean(args.directory, plotcolumns)
+        savemean(args.directory, plotcolumns if args.plot else False)
+    if args.plotall:
+        plotall(args.directory, plotcolumns)
 
 if __name__ == '__main__':
     main()
