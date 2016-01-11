@@ -33,11 +33,15 @@ def diverged(expdir):
 def savemean(basedir, plot=False):
     count = 0
 
-    for dir in it.islice(os.walk(basedir), 1, None):
-        if diverged(dir[0]):
-            print("Diverged: " + dir[0])
+    dirnames = [name for name in os.listdir(basedir)
+                if os.path.isdir(os.path.join(basedir, name))
+                                and os.path.isfile(os.path.join(basedir, name, 'onresults.csv'))]
+    for dirname in dirnames:
+        resultspath = os.path.join(basedir, dirname)
+        if diverged(resultspath):
+            print("Diverged: " + resultspath)
             continue
-        resultsfile = os.path.join(dir[0], 'onresults.csv')
+        resultsfile = os.path.join(resultspath, 'onresults.csv')
         if not os.path.isfile(resultsfile):
             continue
         csv = pd.read_csv(resultsfile)
@@ -113,9 +117,10 @@ def _setplotlabels(plot):
 
 
 def getshortnames(names):
-    shortre = re.compile(r"^(.*)_\d{2}(?:-\d{2}){3}_(.*)$")  # this is the format in which ExperimenterAgent names
+    shortre = re.compile(r"^(.*)_\d{2}(?:-\d{2}){3}_(.*)|(.*)$")  # this is the format in which ExperimenterAgent names
     # its results folder
-    shortnames = [prefix + ".." + appendix for prefix, appendix in (shortre.match(name).groups() for name in names)]
+    shortnames = [prefix + ".." + appendix if prefix is not None or appendix is not None else alt
+                  for prefix, appendix, alt in (shortre.match(name).groups() for name in names)]
     if len(shortnames) == len(set(shortnames)):
         return shortnames
     return names
