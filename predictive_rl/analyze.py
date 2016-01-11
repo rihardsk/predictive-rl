@@ -61,6 +61,7 @@ def savemean(basedir, plot=False):
                 pd.expanding_mean(meancsv[toplot]).plot()
             else:
                 meancsv[toplot].plot()
+        _setplotlabels(plot)
         plt.show()
     return savepath
 
@@ -92,6 +93,12 @@ def plotall(basedir, plot=None):
                     csv[toplot].plot(label=label, legend=True)
         else:
             csv.plot(subplots=True)
+    _setplotlabels(plot)
+    plt.show()
+
+
+def _setplotlabels(plot):
+    plotcount = len(plot)
     for i, toplot in enumerate(plot):
         sub = plt.subplot(1, plotcount, i + 1)
         xlabel = toplot.get('xlabel', '')
@@ -100,8 +107,7 @@ def plotall(basedir, plot=None):
         sub.set_xlabel(xlabel)
         sub.set_ylabel(ylabel)
         sub.set_title(title)
-        plotname = toplot.get('plot')
-    plt.show()
+        # plotname = toplot.get('plot')
 
 
 def getshortnames(names):
