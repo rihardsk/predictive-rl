@@ -53,8 +53,9 @@ def savemean(basedir, plot=False):
         plotcount = len(plot)
         for i, toplot in enumerate(plot):
             runaverages = False
-            if isinstance(toplot, tuple):
-                toplot, runaverages = toplot
+            if isinstance(toplot, dict):
+                runaverages = toplot.get('runaverages', False)
+                toplot = toplot.get('plot')
             plt.subplot(1, plotcount, i + 1)
             if runaverages:
                 pd.expanding_mean(meancsv[toplot]).plot()
@@ -80,8 +81,9 @@ def plotall(basedir, plot=None):
             plotcount = len(plot)
             for i, toplot in enumerate(plot):
                 runaverages = False
-                if isinstance(toplot, tuple):
-                    toplot, runaverages = toplot
+                if isinstance(toplot, dict):
+                    runaverages = toplot.get('runaverages', False)
+                    toplot = toplot.get('plot')
                 label = shortname + (" (diverged)" if hasdiverged else "")
                 plt.subplot(1, plotcount, i + 1)
                 if runaverages:
@@ -100,6 +102,7 @@ def getshortnames(names):
     if len(shortnames) == len(set(shortnames)):
         return shortnames
     return names
+
 
 def printbest(basedir, subdirs=False):
     maxdir = "none"
@@ -155,7 +158,8 @@ def main():
     if args.plotall and not args.subdirs:
         parser.error('--plotall can be used only together with --subdirs.')
     printbest(args.directory, args.subdirs)
-    plotcolumns = ['total_reward', ('mean_reward', True)]
+    plotcolumns = [{'plot': 'total_reward', 'xlabel': 'Epoch', 'ylabel': 'Total reward'},
+                   {'plot': 'mean_reward', 'xlabel': 'Epoch', 'ylabel': 'Running average reward', 'runaverages': True}]
     if args.mean:
         savemean(args.directory, plotcolumns if args.plot else False)
     if args.plotall:
