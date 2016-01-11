@@ -80,9 +80,9 @@ def plotall(basedir, plot=None):
                 label = os.path.split(dir[0])[-1] + (" (diverged)" if hasdiverged else "")
                 plt.subplot(1, plotcount, i + 1)
                 if runaverages:
-                    pd.expanding_mean(csv[toplot]).plot(label=label)
+                    pd.expanding_mean(csv[toplot]).plot(label=label, legend=True)
                 else:
-                    csv[toplot].plot()
+                    csv[toplot].plot(label=label, legend=True)
         else:
             csv.plot(subplots=True)
     plt.show()
