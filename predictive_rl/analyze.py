@@ -63,11 +63,14 @@ def savemean(basedir, plot=False):
 
 
 def plotall(basedir, plot=None):
-    for dir in it.islice(os.walk(basedir), 1, None):
+    dirnames = [name for name in os.listdir(basedir) if os.path.isdir(os.path.join(basedir, name))]
+    shortnames = getshortnames(dirnames)
+    for dirname, shortname in zip(dirnames, shortnames):
+        resultspath = os.path.join(basedir, dirname)
         hasdiverged = False
-        if diverged(dir[0]):
+        if diverged(resultspath):
             hasdiverged = True
-        resultsfile = os.path.join(dir[0], 'onresults.csv')
+        resultsfile = os.path.join(resultspath, 'onresults.csv')
         if not os.path.isfile(resultsfile):
             continue
         csv = pd.read_csv(resultsfile)
@@ -77,7 +80,7 @@ def plotall(basedir, plot=None):
                 runaverages = False
                 if isinstance(toplot, tuple):
                     toplot, runaverages = toplot
-                label = os.path.split(dir[0])[-1] + (" (diverged)" if hasdiverged else "")
+                label = shortname + (" (diverged)" if hasdiverged else "")
                 plt.subplot(1, plotcount, i + 1)
                 if runaverages:
                     pd.expanding_mean(csv[toplot]).plot(label=label, legend=True)
@@ -87,6 +90,14 @@ def plotall(basedir, plot=None):
             csv.plot(subplots=True)
     plt.show()
 
+
+def getshortnames(names):
+    shortre = re.compile(r"^(.*)_\d{2}(?:-\d{2}){3}_(.*)$")  # this is the format in which ExperimenterAgent names
+    # its results folder
+    shortnames = [prefix + ".." + appendix for prefix, appendix in (shortre.match(name).groups() for name in names)]
+    if len(shortnames) == len(set(shortnames)):
+        return shortnames
+    return names
 
 def printbest(basedir, subdirs=False):
     maxdir = "none"
