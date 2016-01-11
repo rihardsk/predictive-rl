@@ -67,7 +67,9 @@ def savemean(basedir, plot=False):
 
 
 def plotall(basedir, plot=None):
-    dirnames = [name for name in os.listdir(basedir) if os.path.isdir(os.path.join(basedir, name))]
+    dirnames = [name for name in os.listdir(basedir)
+                if os.path.isdir(os.path.join(basedir, name))
+                                and os.path.isfile(os.path.join(basedir, name, 'onresults.csv'))]
     shortnames = getshortnames(dirnames)
     plotcount = len(plot)
     for dirname, shortname in zip(dirnames, shortnames):
