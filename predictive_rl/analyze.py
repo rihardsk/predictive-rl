@@ -1,9 +1,11 @@
-import pandas as pd
 import os
 import itertools as it
 from argparse import ArgumentParser
 import re
 from matplotlib import pyplot as plt
+import pandas as pd
+# pd.options.display.mpl_style = 'default'
+plt.style.use('ggplot')
 
 
 def diverged(expdir):
