@@ -68,6 +68,7 @@ def savemean(basedir, plot=False):
 def plotall(basedir, plot=None):
     dirnames = [name for name in os.listdir(basedir) if os.path.isdir(os.path.join(basedir, name))]
     shortnames = getshortnames(dirnames)
+    plotcount = len(plot)
     for dirname, shortname in zip(dirnames, shortnames):
         resultspath = os.path.join(basedir, dirname)
         hasdiverged = False
@@ -78,7 +79,6 @@ def plotall(basedir, plot=None):
             continue
         csv = pd.read_csv(resultsfile)
         if isinstance(plot, list):
-            plotcount = len(plot)
             for i, toplot in enumerate(plot):
                 runaverages = False
                 if isinstance(toplot, dict):
@@ -92,6 +92,15 @@ def plotall(basedir, plot=None):
                     csv[toplot].plot(label=label, legend=True)
         else:
             csv.plot(subplots=True)
+    for i, toplot in enumerate(plot):
+        sub = plt.subplot(1, plotcount, i + 1)
+        xlabel = toplot.get('xlabel', '')
+        ylabel = toplot.get('ylabel', '')
+        title = toplot.get('title', '')
+        sub.set_xlabel(xlabel)
+        sub.set_ylabel(ylabel)
+        sub.set_title(title)
+        plotname = toplot.get('plot')
     plt.show()
 
 
@@ -158,8 +167,10 @@ def main():
     if args.plotall and not args.subdirs:
         parser.error('--plotall can be used only together with --subdirs.')
     printbest(args.directory, args.subdirs)
-    plotcolumns = [{'plot': 'total_reward', 'xlabel': 'Epoch', 'ylabel': 'Total reward'},
-                   {'plot': 'mean_reward', 'xlabel': 'Epoch', 'ylabel': 'Running average reward', 'runaverages': True}]
+    plotcolumns = [{'plot': 'total_reward', 'xlabel': 'Epoch',
+                    'ylabel': 'Total reward', 'title': 'Total reward per epoch'},
+                   {'plot': 'mean_reward', 'xlabel': 'Epoch', 'ylabel': 'Running average reward',
+                    'runaverages': True, 'title': 'Running average reward in epoch'}]
     if args.mean:
         savemean(args.directory, plotcolumns if args.plot else False)
     if args.plotall:
