@@ -150,8 +150,8 @@ def main():
         parser.error('--mean can be used only together with --subdirs.')
     if args.plot and not args.mean:
         parser.error('--plot can be used only together with --mean.')
-    if args.plotall and not args.mean:
-        parser.error('--plotall can be used only together with --mean.')
+    if args.plotall and not args.subdirs:
+        parser.error('--plotall can be used only together with --subdirs.')
     printbest(args.directory, args.subdirs)
     plotcolumns = ['total_reward', ('mean_reward', True)]
     if args.mean:
