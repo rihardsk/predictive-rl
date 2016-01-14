@@ -35,16 +35,14 @@ class PredictiveFutureAgent(PredictiveAgent):
         Returns:
            An action of type rlglue.types.Action
         """
-
-        cur_observation = self._scale_inputs(observation.doubleArray, self.observation_ranges)
+        cur_observation = self.preprocess_observations(observation)
         pred_action, pred_observation, pred_observation_value = self._predict(cur_observation)
-        double_action = self._explore(pred_action, self.action_stdev)
+        action_values = self._explore(pred_action, self.action_stdev)
 
-        return_action = Action()
-        return_action.doubleArray = double_action
+        return_action = self.postprocess_actions(action_values)
 
         self.last_state = cur_observation
-        self.last_action = copy.deepcopy(double_action)
+        self.last_action = copy.deepcopy(action_values)
         self.last_predicted_value = pred_observation_value
         self.lastlast_state = None
         # self.last_original_action = pred_action
