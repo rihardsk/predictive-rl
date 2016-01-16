@@ -41,7 +41,7 @@ class PredictiveAgent(ArgsAgent):
                             help='Learning rate')
         parser.add_argument('-c', '--grad_clipping', type=float, default=None,
                             help='Gradient clipping range (symetric). None to disable.')
-        parser.add_argument('-s', '--action_stdev', type=float, default=1,
+        parser.add_argument('-s', '--action_stdev', type=float, default=0.05,
                             help='Action space exploration standard deviation for Gaussian distribution. '
                                  'Applied to action range.')
         parser.add_argument('-l1', '--l1_weight', type=float, default=None,
@@ -382,8 +382,10 @@ class PredictiveAgent(ArgsAgent):
         return next_action, next_observation, observation_value
 
     def _explore(self, action, stdev):
+        minranges = self.action_ranges[:, 0].T
+        maxranges = self.action_ranges[:, 1].T
         gaussian = 0 if stdev is None or stdev == 0 else self.randGenerator.normal(0, stdev, action.shape)
-        double_action = action + gaussian
+        double_action = action + np.multiply(maxranges - minranges, gaussian)
         return np.asmatrix(np.clip(double_action, self.action_ranges[:, 0].T, self.action_ranges[:, 1].T), dtype=floatX)
 
     def _do_training(self, reward, observation, action, terminal, observation_value, pred_observation, pred_action):
