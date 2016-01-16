@@ -301,7 +301,13 @@ class PredictiveAgent(ArgsAgent):
         if self.continuous_actions:
             action.doubleArray = copy.deepcopy(action_values)
         else:
-            action.intArray = copy.deepcopy(action_values)
+            intactions = copy.deepcopy(action_values)
+            minranges = self.action_ranges[:, 0].T
+            maxranges = self.action_ranges[:, 1].T
+            intactions = np.maximum(intactions, minranges)
+            intactions = np.minimum(intactions, maxranges)
+            intactions = np.rint(intactions).astype(np.int)
+            action.intArray = intactions
         return action
 
     def agent_start(self, observation):
@@ -364,7 +370,7 @@ class PredictiveAgent(ArgsAgent):
             self.diverging = np.isnan(cur_observation).any() or np.isnan(action_values).any()
             loss = self._do_training(np.asmatrix(reward, dtype=floatX), cur_observation, action_values, False,
                                      cur_observation_value, pred_observation, pred_action)
-        return_action = self.postprocess_actions([action_values])
+        return_action = self.postprocess_actions(action_values)
         return return_action if is_testing else (return_action, loss)
 
     def _predict(self, observation):
