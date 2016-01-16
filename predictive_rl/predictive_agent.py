@@ -115,10 +115,10 @@ class PredictiveAgent(ArgsAgent):
             assert ((len(TaskSpec.getIntActions()) == 0) !=
                     (len(TaskSpec.getDoubleActions()) == 0)), \
                 "expecting continous or discrete actions.  Not both."
-            assert not TaskSpec.isSpecial(TaskSpec.getDoubleActions()[0][0]), \
-                " expecting min action to be a number not a special value"
-            assert not TaskSpec.isSpecial(TaskSpec.getDoubleActions()[0][1]), \
-                " expecting max action to be a number not a special value"
+            # assert not TaskSpec.isSpecial(TaskSpec.getDoubleActions()[0][0]), \
+            #     " expecting min action to be a number not a special value"
+            # assert not TaskSpec.isSpecial(TaskSpec.getDoubleActions()[0][1]), \
+            #     " expecting max action to be a number not a special value"
             #self.num_actions = TaskSpec.getIntActions()[0][1]+1
         else:
             print "INVALID TASK SPEC"
@@ -130,7 +130,7 @@ class PredictiveAgent(ArgsAgent):
         if self.continuous_actions:
             self.action_ranges = TaskSpec.getDoubleActions()
         else:
-            self.observation_ranges = TaskSpec.getIntActions()
+            self.action_ranges = TaskSpec.getIntActions()
         self.action_size = len(self.action_ranges)
 
         self._init_network()
@@ -289,7 +289,8 @@ class PredictiveAgent(ArgsAgent):
         return nnet
 
     def preprocess_observations(self, observation):
-        observation_array = observation.doubleArray if self.continuous_actions else observation.intArray
+        # observation_array = observation.doubleArray if self.continuous_actions else observation.intArray
+        observation_array = observation.doubleArray
         cur_observation = np.asmatrix(observation_array, dtype=floatX)
         if self.scale_range is not None:
             cur_observation = self._scale_inputs(cur_observation, self.observation_ranges, self.scale_range)
