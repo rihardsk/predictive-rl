@@ -381,9 +381,9 @@ class PredictiveAgent(ArgsAgent):
         return next_action, next_observation, observation_value
 
     def _explore(self, action, stdev):
-        gaussian = 0 if stdev is None or stdev == 0 else self.randGenerator.normal(0, stdev, len(action))
+        gaussian = 0 if stdev is None or stdev == 0 else self.randGenerator.normal(0, stdev, action.shape)
         double_action = action + gaussian
-        return np.asmatrix(np.clip(double_action, self.action_ranges[:, 0], self.action_ranges[:, 1]), dtype=floatX)
+        return np.asmatrix(np.clip(double_action, self.action_ranges[:, 0].T, self.action_ranges[:, 1].T), dtype=floatX)
 
     def _do_training(self, reward, observation, action, terminal, observation_value, pred_observation, pred_action):
         cur_state = np.asmatrix(observation, dtype=floatX)  # TODO: check if conversion can be removed
