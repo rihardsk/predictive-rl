@@ -299,7 +299,8 @@ class PredictiveAgent(ArgsAgent):
     def postprocess_actions(self, action_values):
         action = Action()
         if self.continuous_actions:
-            action.doubleArray = copy.deepcopy(action_values)
+            doubleactions = copy.deepcopy(action_values)
+            action.doubleArray = doubleactions.tolist()[0]
         else:
             intactions = copy.deepcopy(action_values)
             minranges = self.action_ranges[:, 0].T
@@ -307,7 +308,7 @@ class PredictiveAgent(ArgsAgent):
             intactions = np.maximum(intactions, minranges)
             intactions = np.minimum(intactions, maxranges)
             intactions = np.rint(intactions).astype(np.int)
-            action.intArray = intactions
+            action.intArray = intactions.tolist()[0]
         return action
 
     def agent_start(self, observation):
