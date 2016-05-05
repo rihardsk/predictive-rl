@@ -71,7 +71,7 @@ class PredictiveFutureAgent(PredictiveAgent):
                 if not terminal:
                     loss = self.nnet.fit_obsval(self.lastlast_state, np.hstack((observation, target_value)))
                 else:
-                    loss = self.nnet.fit_value(self.last_state, target_value)
+                    loss = self.nnet.fit_value(self.lastlast_state, target_value)
         else:
             loss = None
         self.lastlast_state = self.last_state
