@@ -2,11 +2,13 @@ from configobj import ConfigObj
 from multiprocessing import Process
 import multiprocessing
 import logging
+import os
 
 
 def parse(configfilename):
     config = ConfigObj(configfilename)
     starting_port = config.get("starting_port")
+    env_base_path = config.get("env_base_path")
     if starting_port is not None:
         starting_port = int(starting_port)
 
@@ -15,6 +17,8 @@ def parse(configfilename):
             section = config[sname]
             if section.get("rlglue_port") is None:
                 section["rlglue_port"] = starting_port + i
+            if env_base_path is not None and section["env_file"] is not None:
+                section["env_file"] = os.path.join(env_base_path, section["env_file"])
             yield section
 
     sectionset = set(config.sections)
@@ -37,7 +41,8 @@ def run_ipyexp(configfilename):
 def run_ipyexp_async(configfilename):
     import predictive_rl.rlglueexp.ipyexp
     expargs, jobargs = parse(configfilename)
-    ipyargs = [(v["rlglue_port"], v["agent_args"], v["exp_args"], v["agent"]) for v in expargs]
+    ipyargs = [(v["rlglue_port"], v["agent_args"], v["exp_args"],
+                v["agent"], v["env_file"]) for v in expargs]
     res = predictive_rl.rlglueexp.ipyexp.run(ipyargs)
     return res
 

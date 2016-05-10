@@ -35,8 +35,11 @@ class SequentialExperiment(object):
                 except:
                     pass
 
-    def run_env(self, rlglue_port):
-        env_command = "RLGLUE_PORT={0} java -jar /home/rihards/Programming/Multi/rl/rl-library/rl-library/products/CartPole.jar".format(rlglue_port)
+    def run_env(self, rlglue_port, env_file):
+        if not os.path.isfile(env_file):
+            sys.stderr.write("ERROR: no such env_file: {}".format(env_file))
+            return
+        env_command = "RLGLUE_PORT={0} java -jar {1}".format(rlglue_port, env_file)
         sys.stderr.write("running:\n")
         sys.stderr.write("\t"+env_command + "\n")
         subproc = subprocess.Popen(env_command, shell=True)
@@ -66,8 +69,8 @@ class SequentialExperiment(object):
         sys.stderr.write("running experiment" + "\n")
         proc.start()
 
-    def run(self, rlglue_port, agent_args, exp_args, agent):
-        self.run_env(rlglue_port)
+    def run(self, rlglue_port, agent_args, exp_args, agent, env_file):
+        self.run_env(rlglue_port, env_file)
         self.run_rlglue(rlglue_port)
         self.run_agent(rlglue_port, agent_args, agent)
         self.run_experiment(rlglue_port, exp_args)

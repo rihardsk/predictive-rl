@@ -16,10 +16,10 @@ def _run(args):
     print("lllll")
     import sys
     sys.stderr.write(str(args) + "\n")
-    rlglue_port, agent_args, exp_args, agent = args
+    rlglue_port, agent_args, exp_args, agent, env_file = args
     # rlglue_port, agent_args, exp_args = (1,2,3)
     print("ooooo")
-    res = seqexp.run(rlglue_port, agent_args, exp_args, agent)
+    res = seqexp.run(rlglue_port, agent_args, exp_args, agent, env_file)
     return rlglue_port
 
 
