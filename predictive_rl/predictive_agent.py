@@ -41,7 +41,7 @@ class PredictiveAgent(ArgsAgent):
                             help='Learning rate')
         parser.add_argument('-c', '--grad_clipping', type=float, default=None,
                             help='Gradient clipping range (symetric). None to disable.')
-        parser.add_argument('-s', '--action_stdev', type=float, default=1,
+        parser.add_argument('-s', '--action_stdev', type=float, default=0.05,
                             help='Action space exploration standard deviation for Gaussian distribution. '
                                  'Applied to action range.')
         parser.add_argument('-l1', '--l1_weight', type=float, default=None,
@@ -112,18 +112,25 @@ class PredictiveAgent(ArgsAgent):
             assert ((len(TaskSpec.getIntObservations()) == 0) !=
                     (len(TaskSpec.getDoubleObservations()) == 0)), \
                 "expecting continous or discrete observations.  Not both."
-            assert not TaskSpec.isSpecial(TaskSpec.getDoubleActions()[0][0]), \
-                " expecting min action to be a number not a special value"
-            assert not TaskSpec.isSpecial(TaskSpec.getDoubleActions()[0][1]), \
-                " expecting max action to be a number not a special value"
+            assert ((len(TaskSpec.getIntActions()) == 0) !=
+                    (len(TaskSpec.getDoubleActions()) == 0)), \
+                "expecting continous or discrete actions.  Not both."
+            # assert not TaskSpec.isSpecial(TaskSpec.getDoubleActions()[0][0]), \
+            #     " expecting min action to be a number not a special value"
+            # assert not TaskSpec.isSpecial(TaskSpec.getDoubleActions()[0][1]), \
+            #     " expecting max action to be a number not a special value"
             #self.num_actions = TaskSpec.getIntActions()[0][1]+1
         else:
             print "INVALID TASK SPEC"
 
-        self.observation_ranges = TaskSpec.getDoubleObservations()  # TODO: take care of int observations
+        self.observation_ranges = TaskSpec.getDoubleObservations()
         self.observation_size = len(self.observation_ranges)
 
-        self.action_ranges = TaskSpec.getDoubleActions()
+        self.continuous_actions = len(TaskSpec.getDoubleActions()) > 0
+        if self.continuous_actions:
+            self.action_ranges = TaskSpec.getDoubleActions()
+        else:
+            self.action_ranges = TaskSpec.getIntActions()
         self.action_size = len(self.action_ranges)
 
         self._init_network()
@@ -281,6 +288,29 @@ class PredictiveAgent(ArgsAgent):
         )
         return nnet
 
+    def preprocess_observations(self, observation):
+        # observation_array = observation.doubleArray if self.continuous_actions else observation.intArray
+        observation_array = observation.doubleArray
+        cur_observation = np.asmatrix(observation_array, dtype=floatX)
+        if self.scale_range is not None:
+            cur_observation = self._scale_inputs(cur_observation, self.observation_ranges, self.scale_range)
+        return cur_observation
+
+    def postprocess_actions(self, action_values):
+        action = Action()
+        if self.continuous_actions:
+            doubleactions = copy.deepcopy(action_values)
+            action.doubleArray = doubleactions.tolist()[0]
+        else:
+            intactions = copy.deepcopy(action_values)
+            minranges = self.action_ranges[:, 0].T
+            maxranges = self.action_ranges[:, 1].T
+            intactions = np.maximum(intactions, minranges)
+            intactions = np.minimum(intactions, maxranges)
+            intactions = np.rint(intactions).astype(np.int)
+            action.intArray = intactions.tolist()[0]
+        return action
+
     def agent_start(self, observation):
         """
         This method is called once at the beginning of each episode.
@@ -294,15 +324,14 @@ class PredictiveAgent(ArgsAgent):
            An action of type rlglue.types.Action
         """
 
-        cur_observation = self._scale_inputs(observation.doubleArray, self.observation_ranges)
+        cur_observation = self.preprocess_observations(observation)
         pred_action, pred_observation, cur_observation_value = self._predict(cur_observation)
-        double_action = self._explore(pred_action, self.action_stdev)
+        action_values = self._explore(pred_action, self.action_stdev)
 
-        return_action = Action()
-        return_action.doubleArray = double_action
+        return_action = self.postprocess_actions(action_values)
 
         self.last_state = cur_observation
-        self.last_action = copy.deepcopy(double_action)
+        self.last_action = copy.deepcopy(action_values)
         self.last_original_action = pred_action
         self.last_state_value = cur_observation_value
 
@@ -333,18 +362,16 @@ class PredictiveAgent(ArgsAgent):
         return np.asmatrix(scaled_back, dtype=floatX)
 
     def exp_step(self, reward, observation, is_testing):
-        return_action = Action()
-        cur_observation = np.asmatrix(observation.doubleArray, dtype=floatX)
-        if self.scale_range is not None:
-            cur_observation = self._scale_inputs(cur_observation, self.observation_ranges, self.scale_range)
+        cur_observation = self.preprocess_observations(observation)
+
         pred_action, pred_observation, cur_observation_value = self._predict(cur_observation)
-        double_action = self._explore(pred_action, self.action_stdev)
+        action_values = self._explore(pred_action, self.action_stdev)
         loss = None
         if not is_testing:
-            self.diverging = np.isnan(cur_observation).any() or np.isnan(double_action).any()
-            loss = self._do_training(np.asmatrix(reward, dtype=floatX), cur_observation, double_action, False,
+            self.diverging = np.isnan(cur_observation).any() or np.isnan(action_values).any()
+            loss = self._do_training(np.asmatrix(reward, dtype=floatX), cur_observation, action_values, False,
                                      cur_observation_value, pred_observation, pred_action)
-        return_action.doubleArray = [copy.deepcopy(double_action)]
+        return_action = self.postprocess_actions(action_values)
         return return_action if is_testing else (return_action, loss)
 
     def _predict(self, observation):
@@ -355,12 +382,14 @@ class PredictiveAgent(ArgsAgent):
         return next_action, next_observation, observation_value
 
     def _explore(self, action, stdev):
-        gaussian = 0 if stdev is None or stdev == 0 else self.randGenerator.normal(0, stdev, len(action))
-        double_action = action + gaussian
-        return np.asmatrix(np.clip(double_action, self.action_ranges[:, 0], self.action_ranges[:, 1]), dtype=floatX)
+        minranges = self.action_ranges[:, 0].T
+        maxranges = self.action_ranges[:, 1].T
+        gaussian = 0 if stdev is None or stdev == 0 else self.randGenerator.normal(0, stdev, action.shape)
+        double_action = action + np.multiply(maxranges - minranges, gaussian)
+        return np.asmatrix(np.clip(double_action, self.action_ranges[:, 0].T, self.action_ranges[:, 1].T), dtype=floatX)
 
     def _do_training(self, reward, observation, action, terminal, observation_value, pred_observation, pred_action):
-        cur_state = np.asmatrix(observation, dtype=floatX)
+        cur_state = np.asmatrix(observation, dtype=floatX)  # TODO: check if conversion can be removed
         last_state_value = self.last_state_value
         if terminal:
             target_value = reward
