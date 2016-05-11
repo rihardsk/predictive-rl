@@ -8,7 +8,7 @@ import os
 def parse(configfilename):
     config = ConfigObj(configfilename)
     starting_port = config.get("starting_port")
-    env_base_path = config.get("env_base_path")
+    env_base_path = os.environ.get("ENV_BASE_PATH") or config.get("env_base_path")
     if starting_port is not None:
         starting_port = int(starting_port)
 
