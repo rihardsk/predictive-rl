@@ -3,7 +3,7 @@ import os
 import itertools as it
 from argparse import ArgumentParser
 import re
-import matplotlib
+import matplotlib as mlp
 from matplotlib import pyplot as plt
 import pandas as pd
 # pd.options.display.mpl_style = 'default'
@@ -68,6 +68,8 @@ def savemean(basedir, plot=False):
             else:
                 meancsv[toplot].plot()
         _setplotlabels(plot)
+        plot_file = os.path.join(basedir,'mean.pdf')
+        plt.savefig(plot_file, bbox_inches='tight')
         plt.show()
     return savepath
 
@@ -102,6 +104,8 @@ def plotall(basedir, plot=None):
         else:
             csv.plot(subplots=True)
     _setplotlabels(plot)
+    plot_file = os.path.join(basedir,'plot.all.pdf')
+    plt.savefig(plot_file, bbox_inches='tight')
     plt.show()
 
 
@@ -186,7 +190,8 @@ def main():
                     'ylabel': u'Kopējais atalgojums', 'title': u'Kopējais atalgojums epohā'},
                    {'plot': 'mean_reward', 'xlabel': u'Epohas', 'ylabel': u'Vidējais atalgojums (summārais)',
                     'runaverages': True, 'title': u'Summārais vidējais atalgojums līdz epohai'}]
-    matplotlib.rc('font', family='DejaVu Sans')
+    mlp.rc('font', family='DejaVu Sans')
+    mlp.rcParams['figure.figsize'] = (20, 12)
     if args.mean:
         savemean(args.directory, plotcolumns if args.plot else False)
     if args.plotall:
