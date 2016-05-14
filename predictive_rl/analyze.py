@@ -1,7 +1,9 @@
+# -*- coding: utf-8 -*-
 import os
 import itertools as it
 from argparse import ArgumentParser
 import re
+import matplotlib
 from matplotlib import pyplot as plt
 import pandas as pd
 # pd.options.display.mpl_style = 'default'
@@ -180,10 +182,11 @@ def main():
     if args.plotall and not args.subdirs:
         parser.error('--plotall can be used only together with --subdirs.')
     printbest(args.directory, args.subdirs)
-    plotcolumns = [{'plot': 'total_reward', 'xlabel': 'Epoch',
-                    'ylabel': 'Total reward', 'title': 'Total reward per epoch'},
-                   {'plot': 'mean_reward', 'xlabel': 'Epoch', 'ylabel': 'Running average reward',
-                    'runaverages': True, 'title': 'Running average reward in epoch'}]
+    plotcolumns = [{'plot': 'total_reward', 'xlabel': u'Epoha',
+                    'ylabel': u'Kopējais atalgojums', 'title': u'Kopējais atalgojums epohā'},
+                   {'plot': 'mean_reward', 'xlabel': u'Epohas', 'ylabel': u'Vidējais atalgojums (summārais)',
+                    'runaverages': True, 'title': u'Summārais vidējais atalgojums līdz epohai'}]
+    matplotlib.rc('font', family='DejaVu Sans')
     if args.mean:
         savemean(args.directory, plotcolumns if args.plot else False)
     if args.plotall:
