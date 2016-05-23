@@ -52,7 +52,7 @@ def savemean(basedir, plot=False):
         else:
             csvsum += csv
         count += 1
-    savepath = os.path.join(basedir, 'onresults.mean.csv')
+    savepath = os.path.join(basedir, 'onresults.csv')
     meancsv = csvsum / count
     meancsv.to_csv(savepath, index=False)
     if plot:
@@ -104,7 +104,7 @@ def plotall(basedir, plot=None):
         else:
             csv.plot(subplots=True)
     _setplotlabels(plot)
-    plot_file = os.path.join(basedir,'plot.all.pdf')
+    plot_file = os.path.join(basedir,'all.pdf')
     plt.savefig(plot_file, bbox_inches='tight')
     plt.show()
 
@@ -191,7 +191,7 @@ def main():
                    {'plot': 'mean_reward', 'xlabel': u'Epohas', 'ylabel': u'Vidējais atalgojums (summārais)',
                     'runaverages': True, 'title': u'Summārais vidējais atalgojums līdz epohai'}]
     mlp.rc('font', family='DejaVu Sans')
-    mlp.rcParams['figure.figsize'] = (20, 12)
+    mlp.rcParams['figure.figsize'] = (18, 8)
     if args.mean:
         savemean(args.directory, plotcolumns if args.plot else False)
     if args.plotall:
