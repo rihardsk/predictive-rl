@@ -9,6 +9,8 @@ The following packages are required:
 * [Theano](http://deeplearning.net/software/theano/)
 * [RL-Glue](http://glue.rl-community.org/)
 * [configobj](https://github.com/DiffSK/configobj)
+* (optional) [IPython Parallel](http://ipyparallel.readthedocs.io/)
+for running the experiments remotelly and/or in parallel
 
 To run the environments you will also have to set up
 [rihardsk/predictive-rl_envs](https://github.com/rihardsk/predictive-rl_envs)

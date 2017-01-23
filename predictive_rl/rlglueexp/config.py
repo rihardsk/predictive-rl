@@ -28,17 +28,39 @@ def parse(configfilename):
 
 
 def run_jobexp(configfilename):
+    """
+    Runs an experiment using jobman. Currently it is probably broken though.
+    """
     import insertjob
     return insertjob.insert_jobexp(*parse(configfilename))
 
 
 def run_ipyexp(configfilename):
+    """
+    Runs the experiments on an IPython cluster. This allows them to be run
+    in parallel and/or on a remote machine. See
+    `IPython Parallel docs http://ipyparallel.readthedocs.io`_
+
+    :param configfilename: a file containing the experiment specification
+    :returns: the result is not meaningful. A value is returned only to
+    indicate that the experiment has finished.
+    """
     res = run_ipyexp_async(configfilename)
     res.wait()
     return res.result
 
 
 def run_ipyexp_async(configfilename):
+    """
+    Runs the experiments on an IPython cluster. This allows them to be run
+    in parallel and/or on a remote machine. See
+    `IPython Parallel docs http://ipyparallel.readthedocs.io`_
+
+    :param configfilename: a file containing the experiment specification
+    :returns: an IPython AsuncResult object that can be used to query
+    the job state and retrieve the result. See
+    `IPython Parallel docs http://ipyparallel.readthedocs.io/en/latest/asyncresult.html`_
+    """
     import predictive_rl.rlglueexp.ipyexp
     expargs, jobargs = parse(configfilename)
     ipyargs = [(v["rlglue_port"], v["agent_args"], v["exp_args"],
@@ -48,6 +70,13 @@ def run_ipyexp_async(configfilename):
 
 
 def run_seqexp(configfilename):
+    """
+    Starts the whole set of processes necessary for the RL experiment
+    according to an experiment configuration file. This includes rlglue,
+    the environment, the agent and the experiment.
+
+    :param configfilename: a file containing the experiment specification
+    """
     from predictive_rl.rlglueexp.seqexp import SequentialExperiment
     expargs, jobargs = parse(configfilename)
     processes = set()
