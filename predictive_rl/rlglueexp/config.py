@@ -3,6 +3,7 @@ from multiprocessing import Process
 import multiprocessing
 import logging
 import os
+import argparse
 
 
 def parse(configfilename):
@@ -90,9 +91,23 @@ def run_seqexp(configfilename):
 
 
 if __name__ == "__main__":
-    # res = parse("sample.config")
-    multiprocessing.log_to_stderr(logging.DEBUG)
-    # res = run_ipyexp("sample.config")
-    # res = run_seqexp("../../experiments/short.config")
-    res = run_ipyexp("../../experiments/short.config")
-    temp = 0
+    experiment_types = ["ipython", "jobman", "local"]
+    parser = argparse.ArgumentParser(
+        description='Automate an experiment according to a experiment \
+        configuration file. It can be run on the "ipython", "jobman", \
+        or "local" backend.\nWARNING: "jobman" backend is probably broken.')
+    parser.add_argument('config_file', type=str,
+                        help="a file with the experiments specification. \
+                        See `sample.config`_.")
+    parser.add_argument('-b', '--backend', choices=experiment_types,
+                        default="local", help="the backend to run the experiment.")
+    args = parser.parse_args()
+
+    backends = {
+        "ipython": run_ipyexp,
+        "jobman": run_jobexp,
+        "local": run_seqexp,
+    }
+
+    method = backends[args.backend]
+    method(args.config_file)
