@@ -18,3 +18,7 @@ To run the environments you will also have to set up
 ## Run
 See [rlglueexp module](predictive_rl/rlglueexp/README.md) for information on
 automating the experiment process.
+
+See the [experiments directory](experiments/README.md)
+for the experiment configuration files to reproduce the
+results in my thesis.
